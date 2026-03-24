@@ -28,6 +28,8 @@ Requirements:
 - Preserve opcode ids unless new nodes are required.
 - Keep fields, inputs, and stacks distinct.
 - Do not invent unsupported structure.
+- String literal values must be enclosed in double quotes: [literal:string:"hello"] not [literal:string:hello].
+- Number and boolean literal values are not quoted: [literal:number:10] [literal:boolean:true].
 - Return only valid Textify canon IR.
 - Do not include explanation outside the IR.
 
