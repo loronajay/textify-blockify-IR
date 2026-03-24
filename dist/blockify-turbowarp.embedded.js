@@ -22366,7 +22366,7 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
     const AI_MUTATION_RULES = `You are modifying Textify canon IR.
 
 Requirements:
-- Mutate only the IR provided below.
+- Start from the IR provided below. Repeat it back to me exactly before applying any mutation.
 - Preserve all unrelated structure.
 - Preserve opcode ids unless new nodes are required.
 - Keep fields, inputs, and stacks distinct.

@@ -383,7 +383,7 @@ describe('Blockify copyRulesWithExportedIR', () => {
     await extension.copyRulesWithExportedIR();
 
     const copied = writeText.mock.calls[0][0];
-    expect(copied).toContain('Mutate only the IR provided below.');
+    expect(copied).toContain('Start from the IR provided below. Repeat it back to me exactly before applying any mutation.');
     expect(copied).toContain('Preserve all unrelated structure.');
     expect(copied).toContain('Preserve opcode ids unless new nodes are required.');
     expect(copied).toContain('Keep fields, inputs, and stacks distinct.');
