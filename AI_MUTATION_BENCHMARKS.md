@@ -268,6 +268,14 @@ The existing rule `Do not include explanation outside the IR.` was already suffi
 
 **Conclusion:** Do not add that rule back. If a model other than Google AI requires stronger output constraints, handle it with a model-specific prompt variation rather than modifying the shared rules constant.
 
+### Finding 2: Google AI session context bleed on structurally similar tests (2026-03-24)
+
+When running multiple mutation tests against Google AI in a single conversation session, the model can carry structural context from earlier mutations into later outputs. Observed on tests 4 and 5 of the AI Model Test Ledger round 2 run — a `looks_say` block introduced in test 3 appeared in the test 4 output, which should have been a clean operator swap with no say block present.
+
+Both cases were resolved by explicitly prompting the model to return to the correct starting IR before proceeding with the mutation request.
+
+**Implication for test methodology:** Each test should either be run in a fresh session, or the starting IR should be explicitly re-stated as a reminder before each mutation request. Do not assume the model is working from the correct base after multiple mutations in the same session.
+
 ## Current Significance
 
 These benchmark cases matter because they go beyond scalar edits. They test:

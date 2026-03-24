@@ -513,6 +513,54 @@ Interpretation:
 - the added empty repeat survived
 - the overall structure remained valid through Blockify
 
+---
+
+## Round 2 — 2026-03-24 (AI Model Test Ledger)
+
+### Setup
+
+- **Model:** Google AI
+- **Date:** 2026-03-24
+- **Tooling:** `copy rules with IR buffer` block in Blockify embedded renderer
+- **Renderer:** full embedded scratch-blocks (real block images, not fallback)
+- **Test source:** `AI_MODEL_TEST_LEDGER.md` — 8 structured tests across IR-A and IR-B
+
+### Results Summary
+
+| Test | Description | Parses | Validates | Achieved | Notes |
+|------|-------------|--------|-----------|----------|-------|
+| 1 | Rename variable | pass | pass | yes | — |
+| 2 | Promote change to top level | pass | pass | yes | — |
+| 3 | Insert block into substack | pass | pass | yes | — |
+| 4 | Swap operator | pass | pass | yes | Required re-anchoring to starting IR — see below |
+| 5 | Wrap inner change in repeat | pass | pass | yes | Required re-anchoring to starting IR — see below |
+| 6 | Change literal value | pass | pass | yes | — |
+| 7 | Append block after sequence | pass | pass | yes | — |
+| 8 | Lift sequence out of repeat | pass | pass | yes | — |
+
+All 8 tests passed. No unintended changes on any test.
+
+### Session Context Bleed (Tests 4 and 5)
+
+On tests 4 and 5, Google AI carried state from prior mutations in the same conversation session. It introduced structure from a previous mutation (test 3 introduced a `looks_say` block; this bled into the test 4 output) rather than working from the clean starting IR.
+
+Both tests required explicitly prompting the model to return to the correct starting IR before producing the mutation. Once re-anchored, the correct output was produced on the next attempt.
+
+**Implication:** When running multiple tests against Google AI in a single session, structural context from earlier mutations can bleed into later outputs. Tests 4 and 5 are structurally downstream of 3 in terms of nesting complexity, which may have amplified the drift. Starting a fresh session per test would avoid this.
+
+### Round 2 Significance
+
+Round 2 is stronger evidence than Round 1 because:
+
+- the embedded scratch-blocks renderer was used (real block images, not fallback placeholders)
+- two distinct base IRs were tested (IR-A and IR-B), covering different opcode families
+- mutations covered a broader range: rename, promotion, insertion, operator swap, deep nesting, literal change, append, and substack lift
+- all 8 passed parse, validation, and structural correctness
+
+The session context bleed finding is the only meaningful limitation observed.
+
+---
+
 ## Historical Takeaway
 
 These Google AI tests matter because they were not limited to simple renames or scalar edits.
