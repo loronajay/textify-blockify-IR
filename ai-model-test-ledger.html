@@ -828,7 +828,7 @@ function readEntry(entryEl) {
     validates: entryEl.querySelector('input[name$="-validates"]:checked')?.value || '',
     achieved: entryEl.querySelector('input[name$="-achieved"]:checked')?.value || '',
     unintended: entryEl.querySelector('.field-unintended').value,
-    notes: entryEl.querySelector('.notes-field').value,
+    notes: entryEl.querySelector('.field-notes').value,
     image: entryEl.querySelector('.drop-zone').dataset.imageData || '',
   };
 }
@@ -993,7 +993,7 @@ function buildResultEntry(testId, listEl, data = {}) {
         </div>
         <div>
           <label class="field-label">Notes</label>
-          <textarea class="notes-field" placeholder="Any additional observations…">${escHtml(data.notes || '')}</textarea>
+          <textarea class="notes-field field-notes" placeholder="Any additional observations…">${escHtml(data.notes || '')}</textarea>
         </div>
       </div>
     </div>
