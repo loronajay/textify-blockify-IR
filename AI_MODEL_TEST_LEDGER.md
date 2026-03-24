@@ -135,7 +135,7 @@ Used by Tests 6–8. A procedure with a sequence of a say block and a variable s
             id:"say1"
             fields:{}
             inputs:{
-              MESSAGE:[literal:string:hello]
+              MESSAGE:[literal:string:"hello"]
             }
             stacks:{}
           ]
@@ -219,7 +219,7 @@ Do not change the repeat block's TIMES input.
 ### Success Criteria
 
 - repeat's `SUBSTACK` now begins with a `looks_say` block
-- `looks_say` has `MESSAGE:[literal:string:looping]`
+- `looks_say` has `MESSAGE:[literal:string:"looping"]`
 - original `control_if` block follows immediately after in the same substack
 - all other structure is unchanged
 
@@ -316,7 +316,7 @@ Do not change any existing blocks.
 
 - repeat substack order: `looks_say` ("hello"), `data_setvariableto`, `looks_say` ("done")
 - existing block ids are unchanged
-- new `looks_say` has `MESSAGE:[literal:string:done]`
+- new `looks_say` has `MESSAGE:[literal:string:"done"]`
 
 ### Result Log
 

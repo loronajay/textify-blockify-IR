@@ -605,7 +605,7 @@ const IR_B = `[procedure
             id:"say1"
             fields:{}
             inputs:{
-              MESSAGE:[literal:string:hello]
+              MESSAGE:[literal:string:"hello"]
             }
             stacks:{}
           ]
@@ -668,7 +668,7 @@ Do not change the control_if block or anything inside it.
 Do not change the repeat block's TIMES input.`,
     criteria: [
       'Repeat\'s SUBSTACK begins with a looks_say block',
-      'looks_say has MESSAGE:[literal:string:looping]',
+      'looks_say has MESSAGE:[literal:string:"looping"]',
       'Original control_if follows immediately after in the same substack',
       'All other structure is unchanged',
     ]
@@ -733,7 +733,7 @@ Do not change any existing blocks.`,
     criteria: [
       'Repeat substack order: looks_say ("hello"), data_setvariableto, looks_say ("done")',
       'Existing block ids are unchanged',
-      'New looks_say has MESSAGE:[literal:string:done]',
+      'New looks_say has MESSAGE:[literal:string:"done"]',
     ]
   },
   {
