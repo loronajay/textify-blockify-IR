@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Model Test Ledger — v2 (Behavioral)</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: .25rem;
+    }
+
+    .page-header {
+      max-width: 1400px;
+      margin: 0 auto 2.5rem;
+      border-bottom: 1px solid #2d3748;
+      padding-bottom: 1.25rem;
+    }
+
+    .page-subtitle {
+      color: #94a3b8;
+      font-size: .9rem;
+    }
+
+    /* ── Test card ── */
+    .test-card {
+      max-width: 1400px;
+      margin: 0 auto 3rem;
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .test-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      background: #1e2540;
+      padding: .9rem 1.25rem;
+      border-bottom: 1px solid #2d3748;
+    }
+
+    .test-number {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #7c86ff;
+      white-space: nowrap;
+    }
+
+    .test-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .test-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    @media (max-width: 900px) {
+      .test-body { grid-template-columns: 1fr; }
+    }
+
+    /* ── Spec panel ── */
+    .spec-panel {
+      border-right: 1px solid #2d3748;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .spec-section-label {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #64748b;
+      margin-bottom: .4rem;
+    }
+
+    .ir-block {
+      background: #0d1117;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+      font-family: 'Fira Mono', 'Cascadia Code', monospace;
+      font-size: .78rem;
+      color: #a5f3cb;
+      padding: .85rem 1rem;
+      white-space: pre;
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 360px;
+      line-height: 1.55;
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: .5rem;
+      right: .5rem;
+      background: #2d3748;
+      border: none;
+      color: #94a3b8;
+      border-radius: 4px;
+      padding: .2rem .55rem;
+      font-size: .7rem;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+
+    .copy-btn:hover { background: #3d4f6a; color: #e2e8f0; }
+    .copy-btn.copied { background: #1a4731; color: #4ade80; }
+
+    .mutation-box {
+      background: #12182a;
+      border: 1px solid #2d3748;
+      border-left: 3px solid #7c86ff;
+      border-radius: 6px;
+      font-family: 'Fira Mono', 'Cascadia Code', monospace;
+      font-size: .8rem;
+      color: #c7d2fe;
+      padding: .85rem 1rem;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    .criteria-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+
+    .criteria-list li {
+      font-size: .85rem;
+      color: #94a3b8;
+      padding-left: 1.25rem;
+      position: relative;
+    }
+
+    .criteria-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #4ade80;
+      font-size: .75rem;
+    }
+
+    /* ── Results panel ── */
+    .results-panel {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .results-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .add-result-btn {
+      background: #1e2d40;
+      border: 1px solid #3b5268;
+      color: #7dd3fc;
+      border-radius: 6px;
+      padding: .3rem .8rem;
+      font-size: .78rem;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .add-result-btn:hover { background: #243547; }
+
+    /* ── Result entry ── */
+    .result-entry {
+      background: #141926;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .result-entry-header {
+      background: #1a2235;
+      padding: .6rem 1rem;
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      border-bottom: 1px solid #2d3748;
+    }
+
+    .result-entry-header input[type="text"],
+    .result-entry-header input[type="date"] {
+      background: #0d1117;
+      border: 1px solid #2d3748;
+      border-radius: 4px;
+      color: #e2e8f0;
+      font-size: .82rem;
+      padding: .3rem .6rem;
+    }
+
+    .result-entry-header input[type="text"] { width: 180px; }
+    .result-entry-header input[type="date"] { width: 150px; }
+
+    input::placeholder { color: #4a5568; }
+
+    .result-entry-body {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Grid inside result entry: output IR left, image right */
+    .result-main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 1100px) {
+      .result-main-grid { grid-template-columns: 1fr; }
+    }
+
+    label.field-label {
+      display: block;
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #64748b;
+      margin-bottom: .35rem;
+    }
+
+    textarea.output-ir {
+      width: 100%;
+      min-height: 220px;
+      background: #0d1117;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+      color: #a5f3cb;
+      font-family: 'Fira Mono', 'Cascadia Code', monospace;
+      font-size: .75rem;
+      padding: .75rem;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    textarea.output-ir:focus,
+    textarea.notes-field:focus,
+    input:focus {
+      outline: none;
+      border-color: #4f6fad;
+    }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      min-height: 220px;
+      border: 2px dashed #2d3748;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      position: relative;
+      overflow: hidden;
+      background: #0d1117;
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #7c86ff;
+      background: #111827;
+    }
+
+    .drop-zone-label {
+      font-size: .8rem;
+      color: #4a5568;
+      pointer-events: none;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .drop-zone-label span {
+      display: block;
+      font-size: 1.5rem;
+      margin-bottom: .35rem;
+      color: #374151;
+    }
+
+    .drop-zone img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      position: absolute;
+      top: 0; left: 0;
+      padding: .5rem;
+    }
+
+    .drop-zone input[type="file"] {
+      display: none;
+    }
+
+    .drop-zone-clear {
+      position: absolute;
+      top: .4rem;
+      right: .4rem;
+      background: #1f2937cc;
+      border: 1px solid #374151;
+      color: #9ca3af;
+      border-radius: 4px;
+      padding: .15rem .45rem;
+      font-size: .7rem;
+      cursor: pointer;
+      display: none;
+      z-index: 2;
+    }
+
+    .drop-zone.has-image .drop-zone-label { display: none; }
+    .drop-zone.has-image .drop-zone-clear { display: block; }
+
+    /* ── Pass/fail fields ── */
+    .verdict-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+
+    .verdict-field {
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+    }
+
+    .verdict-options {
+      display: flex;
+      gap: .5rem;
+    }
+
+    .verdict-options label {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .82rem;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: .25rem .6rem;
+      border: 1px solid #2d3748;
+      border-radius: 4px;
+      transition: background .12s, border-color .12s, color .12s;
+    }
+
+    .verdict-options input[type="radio"] { display: none; }
+
+    .verdict-options label:has(input:checked) {
+      color: #f8fafc;
+      border-color: transparent;
+    }
+
+    /* Coloring per verdict group */
+    .verdict-pass label:has(input[value="pass"]:checked)    { background: #14532d; border-color: #166534; color: #4ade80; }
+    .verdict-pass label:has(input[value="fail"]:checked)    { background: #450a0a; border-color: #7f1d1d; color: #f87171; }
+    .verdict-achieved label:has(input[value="yes"]:checked)     { background: #14532d; border-color: #166534; color: #4ade80; }
+    .verdict-achieved label:has(input[value="partial"]:checked) { background: #451a03; border-color: #78350f; color: #fbbf24; }
+    .verdict-achieved label:has(input[value="no"]:checked)      { background: #450a0a; border-color: #7f1d1d; color: #f87171; }
+
+    /* ── Notes + unintended ── */
+    .two-col-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 700px) {
+      .two-col-fields { grid-template-columns: 1fr; }
+    }
+
+    textarea.notes-field {
+      width: 100%;
+      min-height: 80px;
+      background: #0d1117;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-family: inherit;
+      font-size: .83rem;
+      padding: .65rem .75rem;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .remove-result-btn {
+      align-self: flex-end;
+      background: none;
+      border: 1px solid #3d1f1f;
+      color: #6b3030;
+      border-radius: 4px;
+      padding: .2rem .55rem;
+      font-size: .72rem;
+      cursor: pointer;
+      transition: background .12s, color .12s;
+      margin-top: .25rem;
+    }
+
+    .remove-result-btn:hover { background: #3d1f1f; color: #f87171; }
+
+    /* ── Summary table ── */
+    .summary-section {
+      max-width: 1400px;
+      margin: 0 auto 4rem;
+    }
+
+    .summary-section h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 1rem;
+    }
+
+    .summary-table-wrap {
+      overflow-x: auto;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .83rem;
+    }
+
+    thead tr { background: #1e2540; }
+    thead th {
+      text-align: left;
+      padding: .65rem .9rem;
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      white-space: nowrap;
+      border-bottom: 1px solid #2d3748;
+    }
+
+    tbody tr { border-bottom: 1px solid #1e2535; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #1a2030; }
+
+    tbody td {
+      padding: .6rem .9rem;
+      color: #cbd5e1;
+      vertical-align: top;
+    }
+
+    .summary-badge {
+      display: inline-block;
+      padding: .1rem .45rem;
+      border-radius: 3px;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+
+    .badge-pass    { background: #14532d; color: #4ade80; }
+    .badge-fail    { background: #450a0a; color: #f87171; }
+    .badge-yes     { background: #14532d; color: #4ade80; }
+    .badge-partial { background: #451a03; color: #fbbf24; }
+    .badge-no      { background: #450a0a; color: #f87171; }
+    .badge-empty   { background: #1e293b; color: #475569; }
+
+    .save-notice {
+      font-size: .75rem;
+      color: #475569;
+      margin-top: .5rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>AI Model Test Ledger — v2 (Behavioral Prompts)</h1>
+  <p class="page-subtitle">Same IRs as v1, but prompts describe intended behavior rather than direct structural changes. Tests whether models can interpret high-level intent and produce correct mutations.</p>
+  <div style="margin-top:.85rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+    <button onclick="exportAllData()" style="background:#1e2d40;border:1px solid #3b5268;color:#7dd3fc;border-radius:6px;padding:.35rem .9rem;font-size:.82rem;cursor:pointer">Export JSON</button>
+    <label style="background:#1e2540;border:1px solid #2d3748;color:#94a3b8;border-radius:6px;padding:.35rem .9rem;font-size:.82rem;cursor:pointer">
+      Import JSON<input type="file" accept=".json" style="display:none" onchange="importAllData(this.files[0])">
+    </label>
+  </div>
+  <div id="storage-warning" style="display:none;margin-top:.75rem;background:#3d1505;border:1px solid #92400e;border-radius:6px;padding:.6rem .9rem;font-size:.82rem;color:#fbbf24">
+    ⚠ Storage quota exceeded — text fields are saved but one or more images could not be stored. Use <strong>Export JSON</strong> to save a full backup including images.
+  </div>
+</div>
+
+<!-- Tests injected by JS -->
+<div id="tests-container"></div>
+
+<div class="summary-section">
+  <h2>Scoring Summary</h2>
+  <div class="summary-table-wrap">
+    <table id="summary-table">
+      <thead>
+        <tr>
+          <th>Test</th>
+          <th>Description</th>
+          <th>Model</th>
+          <th>Date</th>
+          <th>Parses</th>
+          <th>Validates</th>
+          <th>Change Achieved</th>
+          <th>Unintended Changes</th>
+        </tr>
+      </thead>
+      <tbody id="summary-body"></tbody>
+    </table>
+  </div>
+  <p class="save-notice">Text auto-saves to localStorage. Images are stored separately and may be lost if storage is full — use Export JSON to keep a complete backup. Import JSON to restore.</p>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// Test definitions
+// ─────────────────────────────────────────────
+
+const IR_A = `[procedure
+  proccode:"TEST BLOCK A"
+  argumentnames:[]
+  argumentdefaults:[]
+  warp:false
+  body:[stack:
+    [opcode:control_repeat
+      id:"repeat1"
+      fields:{}
+      inputs:{
+        TIMES:[literal:number:10]
+      }
+      stacks:{
+        SUBSTACK:[stack:
+          [opcode:control_if
+            id:"if1"
+            fields:{}
+            inputs:{
+              CONDITION:[opcode:operator_equals
+                id:"cond1"
+                fields:{}
+                inputs:{
+                  OPERAND1:[opcode:motion_xposition
+                    id:"xpos1"
+                    fields:{}
+                    inputs:{}
+                    stacks:{}
+                  ]
+                  OPERAND2:[literal:number:50]
+                }
+                stacks:{}
+              ]
+            }
+            stacks:{
+              SUBSTACK:[stack:
+                [opcode:data_changevariableby
+                  id:"change1"
+                  fields:{
+                    VARIABLE:"x"
+                  }
+                  inputs:{
+                    VALUE:[literal:number:1]
+                  }
+                  stacks:{}
+                ]
+              ]
+            }
+          ]
+        ]
+      }
+    ]
+  ]
+]`;
+
+const IR_B = `[procedure
+  proccode:"ANNOUNCE SCORE"
+  argumentnames:[]
+  argumentdefaults:[]
+  warp:false
+  body:[stack:
+    [opcode:control_repeat
+      id:"outerRepeat"
+      fields:{}
+      inputs:{
+        TIMES:[literal:number:3]
+      }
+      stacks:{
+        SUBSTACK:[stack:
+          [opcode:looks_say
+            id:"say1"
+            fields:{}
+            inputs:{
+              MESSAGE:[literal:string:"hello"]
+            }
+            stacks:{}
+          ]
+          [opcode:data_setvariableto
+            id:"set1"
+            fields:{
+              VARIABLE:"score"
+            }
+            inputs:{
+              VALUE:[literal:number:0]
+            }
+            stacks:{}
+          ]
+        ]
+      }
+    ]
+  ]
+]`;
+
+const TESTS = [
+  {
+    id: 'test1',
+    title: 'Rename the tracked variable',
+    ir: IR_A,
+    irLabel: 'IR-A',
+    mutation: `The variable being tracked feels too generic. Give it a name that better reflects that it is counting a score.`,
+    criteria: [
+      'The VARIABLE field is updated to a more descriptive name (e.g. "score") everywhere it appears',
+      'No opcodes, ids, inputs, or structural changes occur',
+      'IR parses and validates',
+    ]
+  },
+  {
+    id: 'test2',
+    title: 'Make the counter unconditional',
+    ir: IR_A,
+    irLabel: 'IR-A',
+    mutation: `The counter should go up every cycle of the loop, not only when the sprite reaches the target position. Move it so it always runs regardless of the condition.`,
+    criteria: [
+      'data_changevariableby is no longer inside the control_if block',
+      'It runs on every loop cycle',
+      'The control_repeat and control_if remain structurally intact',
+      'VARIABLE and VALUE are unchanged',
+    ]
+  },
+  {
+    id: 'test3',
+    title: 'Add a visual signal when the condition is met',
+    ir: IR_A,
+    irLabel: 'IR-A',
+    mutation: `When the position condition is met, the sprite should say something to visually signal it. Add that behavior inside the condition block.`,
+    criteria: [
+      'A looks_say block is added inside the control_if\'s body',
+      'The existing data_changevariableby block remains',
+      'The outer repeat and condition are unchanged',
+      'The new looks_say has a non-empty MESSAGE',
+    ]
+  },
+  {
+    id: 'test4',
+    title: 'Make the position check less strict',
+    ir: IR_A,
+    irLabel: 'IR-A',
+    mutation: `Right now the check only passes when the sprite is exactly at the target. It should also pass when the sprite has gone past it. Adjust the comparison accordingly.`,
+    criteria: [
+      'The operator in the condition is changed from equals to greater-than (or equivalent)',
+      'OPERAND1 is still motion_xposition',
+      'OPERAND2 is still the same number value',
+      'No other changes occur',
+    ]
+  },
+  {
+    id: 'test5',
+    title: 'Repeat the counter update multiple times per trigger',
+    ir: IR_A,
+    irLabel: 'IR-A',
+    mutation: `Inside the condition block, the counter update should run several times in a row before moving on, not just once. Wrap it so it repeats a fixed number of times.`,
+    criteria: [
+      'The data_changevariableby is wrapped inside a new loop block within the condition',
+      'The new loop runs a fixed number of times (any reasonable value)',
+      'The condition block contains exactly the new loop as its only child',
+      'The outer repeat and condition are unchanged',
+    ]
+  },
+  {
+    id: 'test6',
+    title: 'Make the announcement run longer',
+    ir: IR_B,
+    irLabel: 'IR-B',
+    mutation: `The announcement phase should repeat more times before it finishes. Make it run longer than it currently does.`,
+    criteria: [
+      'The TIMES value on the repeat block is increased',
+      'All blocks inside the loop are unchanged',
+      'No ids, fields, or other inputs change',
+    ]
+  },
+  {
+    id: 'test7',
+    title: 'Add a between-step signal',
+    ir: IR_B,
+    irLabel: 'IR-B',
+    mutation: `After the reset step inside the loop, add a brief message so there is a clear signal that one cycle has completed before the next one begins.`,
+    criteria: [
+      'A new looks_say block is added after the data_setvariableto block in the loop',
+      'Existing block ids, fields, and inputs are unchanged',
+      'The new looks_say has a non-empty MESSAGE',
+    ]
+  },
+  {
+    id: 'test8',
+    title: 'Move the reset step outside the loop',
+    ir: IR_B,
+    irLabel: 'IR-B',
+    mutation: `The reset step currently happens on every cycle, but it only needs to happen once at the start. Move it so it runs before the loop begins instead of inside it.`,
+    criteria: [
+      'data_setvariableto appears at the body level before the control_repeat',
+      'The repeat\'s body contains only the looks_say block',
+      'Block ids, fields, and inputs are unchanged',
+    ]
+  },
+];
+
+// ─────────────────────────────────────────────
+// Storage helpers (v2 prefix to avoid collision with v1)
+// ─────────────────────────────────────────────
+
+function storageKey(testId) { return `ledger2_${testId}`; }
+function imageKey(testId, index) { return `ledger2_img_${testId}_${index}`; }
+
+let _quotaWarned = false;
+function showQuotaWarning() {
+  if (_quotaWarned) return;
+  _quotaWarned = true;
+  const el = document.getElementById('storage-warning');
+  if (el) el.style.display = 'block';
+}
+
+function trySave(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) showQuotaWarning();
+    return false;
+  }
+}
+
+function loadResults(testId) {
+  try {
+    const rows = JSON.parse(localStorage.getItem(storageKey(testId))) || [];
+    return rows.map((r, i) => ({
+      ...r,
+      image: localStorage.getItem(imageKey(testId, i)) || ''
+    }));
+  } catch { return []; }
+}
+
+function saveResults(testId, results) {
+  const rows = results.map(({ image, ...rest }) => rest);
+  trySave(storageKey(testId), JSON.stringify(rows));
+  results.forEach((r, i) => {
+    if (r.image) {
+      trySave(imageKey(testId, i), r.image);
+    } else {
+      try { localStorage.removeItem(imageKey(testId, i)); } catch {}
+    }
+  });
+  for (let i = results.length; i < results.length + 10; i++) {
+    const k = imageKey(testId, i);
+    if (localStorage.getItem(k) !== null) {
+      try { localStorage.removeItem(k); } catch {}
+    } else break;
+  }
+}
+
+function readEntry(entryEl) {
+  return {
+    model: entryEl.querySelector('.field-model').value,
+    date: entryEl.querySelector('.field-date').value,
+    outputIR: entryEl.querySelector('.output-ir').value,
+    parses: entryEl.querySelector('input[name$="-parses"]:checked')?.value || '',
+    validates: entryEl.querySelector('input[name$="-validates"]:checked')?.value || '',
+    achieved: entryEl.querySelector('input[name$="-achieved"]:checked')?.value || '',
+    unintended: entryEl.querySelector('.field-unintended').value,
+    notes: entryEl.querySelector('.field-notes').value,
+    image: entryEl.querySelector('.drop-zone').dataset.imageData || '',
+  };
+}
+
+function saveAllEntries(testId, listEl) {
+  const entries = [...listEl.querySelectorAll('.result-entry')].map(readEntry);
+  saveResults(testId, entries);
+  rebuildSummary();
+}
+
+// ─────────────────────────────────────────────
+// Export / Import
+// ─────────────────────────────────────────────
+
+function exportAllData() {
+  const data = {};
+  TESTS.forEach(t => { data[t.id] = loadResults(t.id); });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ledger-v2-export-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importAllData(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      TESTS.forEach(t => {
+        if (Array.isArray(data[t.id])) saveResults(t.id, data[t.id]);
+      });
+      location.reload();
+    } catch {
+      alert('Import failed: invalid JSON file.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ─────────────────────────────────────────────
+// Drop zone
+// ─────────────────────────────────────────────
+
+function initDropZone(zone, onChange) {
+  const fileInput = zone.querySelector('input[type="file"]');
+  const clearBtn = zone.querySelector('.drop-zone-clear');
+  const img = document.createElement('img');
+
+  function setImage(dataUrl) {
+    zone.dataset.imageData = dataUrl;
+    img.src = dataUrl;
+    if (!zone.contains(img)) zone.appendChild(img);
+    zone.classList.add('has-image');
+    onChange();
+  }
+
+  function clearImage() {
+    zone.dataset.imageData = '';
+    if (zone.contains(img)) zone.removeChild(img);
+    zone.classList.remove('has-image');
+    onChange();
+  }
+
+  function readFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => setImage(e.target.result);
+    reader.readAsDataURL(file);
+  }
+
+  zone.addEventListener('click', e => {
+    if (e.target === clearBtn) return;
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) readFile(fileInput.files[0]);
+    fileInput.value = '';
+  });
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    readFile(e.dataTransfer.files[0]);
+  });
+
+  clearBtn.addEventListener('click', e => { e.stopPropagation(); clearImage(); });
+
+  return { setImage };
+}
+
+// ─────────────────────────────────────────────
+// Result entry builder
+// ─────────────────────────────────────────────
+
+let _uid = 0;
+function uid() { return `e${++_uid}`; }
+
+function buildResultEntry(testId, listEl, data = {}) {
+  const id = uid();
+  const el = document.createElement('div');
+  el.className = 'result-entry';
+
+  el.innerHTML = `
+    <div class="result-entry-header">
+      <input type="text" class="field-model" placeholder="Model name" value="${escHtml(data.model || '')}">
+      <input type="date" class="field-date" value="${escHtml(data.date || '')}">
+      <button class="remove-result-btn">Remove</button>
+    </div>
+    <div class="result-entry-body">
+      <div class="result-main-grid">
+        <div>
+          <label class="field-label">Output IR</label>
+          <textarea class="output-ir" placeholder="Paste the model's returned IR here…">${escHtml(data.outputIR || '')}</textarea>
+        </div>
+        <div>
+          <label class="field-label">Block Image</label>
+          <div class="drop-zone">
+            <input type="file" accept="image/*">
+            <div class="drop-zone-label">
+              <span>🖼</span>
+              Drop screenshot here<br>or click to upload
+            </div>
+            <button class="drop-zone-clear">✕ clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="verdict-row">
+        <div class="verdict-field">
+          <label class="field-label">Parses</label>
+          <div class="verdict-options verdict-pass">
+            <label><input type="radio" name="${id}-parses" value="pass" ${data.parses==='pass'?'checked':''}>pass</label>
+            <label><input type="radio" name="${id}-parses" value="fail" ${data.parses==='fail'?'checked':''}>fail</label>
+          </div>
+        </div>
+        <div class="verdict-field">
+          <label class="field-label">Validates</label>
+          <div class="verdict-options verdict-pass">
+            <label><input type="radio" name="${id}-validates" value="pass" ${data.validates==='pass'?'checked':''}>pass</label>
+            <label><input type="radio" name="${id}-validates" value="fail" ${data.validates==='fail'?'checked':''}>fail</label>
+          </div>
+        </div>
+        <div class="verdict-field">
+          <label class="field-label">Change Achieved</label>
+          <div class="verdict-options verdict-achieved">
+            <label><input type="radio" name="${id}-achieved" value="yes" ${data.achieved==='yes'?'checked':''}>yes</label>
+            <label><input type="radio" name="${id}-achieved" value="partial" ${data.achieved==='partial'?'checked':''}>partial</label>
+            <label><input type="radio" name="${id}-achieved" value="no" ${data.achieved==='no'?'checked':''}>no</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col-fields">
+        <div>
+          <label class="field-label">Unintended Changes</label>
+          <textarea class="notes-field field-unintended" placeholder='Describe any unintended changes, or "none"'>${escHtml(data.unintended || '')}</textarea>
+        </div>
+        <div>
+          <label class="field-label">Notes</label>
+          <textarea class="notes-field field-notes" placeholder="Any additional observations…">${escHtml(data.notes || '')}</textarea>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const dz = el.querySelector('.drop-zone');
+  const { setImage } = initDropZone(dz, () => saveAllEntries(testId, listEl));
+  if (data.image) setImage(data.image);
+
+  el.querySelector('.remove-result-btn').addEventListener('click', () => {
+    el.remove();
+    saveAllEntries(testId, listEl);
+  });
+
+  el.addEventListener('input', () => saveAllEntries(testId, listEl));
+  el.addEventListener('change', () => saveAllEntries(testId, listEl));
+
+  return el;
+}
+
+// ─────────────────────────────────────────────
+// Test card builder
+// ─────────────────────────────────────────────
+
+function buildTestCard(test, index) {
+  const card = document.createElement('div');
+  card.className = 'test-card';
+  card.id = test.id;
+
+  card.innerHTML = `
+    <div class="test-header">
+      <span class="test-number">Test ${index + 1} · ${test.irLabel}</span>
+      <span class="test-title">${escHtml(test.title)}</span>
+    </div>
+    <div class="test-body">
+      <div class="spec-panel">
+        <div>
+          <div class="spec-section-label">Starting IR</div>
+          <div class="ir-block" id="ir-${test.id}"><button class="copy-btn" data-target="ir-${test.id}">copy</button>${escHtml(test.ir)}</div>
+        </div>
+        <div>
+          <div class="spec-section-label">Behavioral Prompt</div>
+          <div class="mutation-box">${escHtml(test.mutation)}</div>
+        </div>
+        <div>
+          <div class="spec-section-label">Success Criteria</div>
+          <ul class="criteria-list">
+            ${test.criteria.map(c => `<li>${escHtml(c)}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+      <div class="results-panel">
+        <div class="results-panel-header">
+          <span class="spec-section-label" style="margin:0">Results</span>
+          <button class="add-result-btn" data-test="${test.id}">+ Add Result</button>
+        </div>
+        <div class="result-list" id="results-${test.id}"></div>
+      </div>
+    </div>
+  `;
+
+  const listEl = card.querySelector(`#results-${test.id}`);
+
+  card.querySelector('.add-result-btn').addEventListener('click', () => {
+    listEl.appendChild(buildResultEntry(test.id, listEl));
+    saveAllEntries(test.id, listEl);
+  });
+
+  const saved = loadResults(test.id);
+  if (saved.length > 0) {
+    saved.forEach(data => listEl.appendChild(buildResultEntry(test.id, listEl, data)));
+  }
+
+  return card;
+}
+
+// ─────────────────────────────────────────────
+// Summary table
+// ─────────────────────────────────────────────
+
+function badge(val) {
+  if (!val) return `<span class="summary-badge badge-empty">—</span>`;
+  return `<span class="summary-badge badge-${val}">${escHtml(val)}</span>`;
+}
+
+function rebuildSummary() {
+  const tbody = document.getElementById('summary-body');
+  tbody.innerHTML = '';
+
+  TESTS.forEach((test, i) => {
+    const results = loadResults(test.id);
+    if (results.length === 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><a href="#${test.id}" style="color:#7c86ff;text-decoration:none">Test ${i+1}</a></td>
+        <td>${escHtml(test.title)}</td>
+        <td colspan="6" style="color:#374151;font-style:italic">no results yet</td>
+      `;
+      tbody.appendChild(tr);
+    } else {
+      results.forEach((r, ri) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${ri === 0 ? `<a href="#${test.id}" style="color:#7c86ff;text-decoration:none">Test ${i+1}</a>` : ''}</td>
+          <td>${ri === 0 ? escHtml(test.title) : ''}</td>
+          <td>${escHtml(r.model || '—')}</td>
+          <td style="white-space:nowrap">${escHtml(r.date || '—')}</td>
+          <td>${badge(r.parses)}</td>
+          <td>${badge(r.validates)}</td>
+          <td>${badge(r.achieved)}</td>
+          <td style="max-width:200px;white-space:normal">${escHtml(r.unintended || '—')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+// Copy button
+// ─────────────────────────────────────────────
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  const block = document.getElementById(btn.dataset.target);
+  const text = block.innerText.replace('copy', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
+  });
+});
+
+// ─────────────────────────────────────────────
+// Escape helper
+// ─────────────────────────────────────────────
+
+function escHtml(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────
+
+const container = document.getElementById('tests-container');
+TESTS.forEach((test, i) => container.appendChild(buildTestCard(test, i)));
+rebuildSummary();
+</script>
+</body>
+</html>
