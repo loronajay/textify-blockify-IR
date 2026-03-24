@@ -22373,6 +22373,7 @@ Requirements:
 - Do not invent unsupported structure.
 - Return only valid Textify canon IR.
 - Do not include explanation outside the IR.
+- Reply with the mutated IR only, nothing more.
 
 IR:
 `;

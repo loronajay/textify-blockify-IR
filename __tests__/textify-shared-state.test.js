@@ -385,6 +385,7 @@ describe('Blockify copyRulesWithExportedIR', () => {
     expect(copied).toContain('Do not invent unsupported structure.');
     expect(copied).toContain('Return only valid Textify canon IR.');
     expect(copied).toContain('Do not include explanation outside the IR.');
+    expect(copied).toContain('Reply with the mutated IR only, nothing more.');
   });
 
   test('copyRulesWithExportedIR is exposed as a block in getInfo()', () => {
