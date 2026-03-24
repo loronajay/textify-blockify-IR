@@ -80,6 +80,47 @@ Validation:
 
 - `match.opcode` must be present and non-empty
 
+
+/*
+ 
+### `replace_body`
+ 
+Replaces the body stack of a targeted root with a new one supplied as an IR string.
+ 
+```json
+{
+  "op": "replace_body",
+  "target": {
+    "type": "procedure",
+    "proccode": "MY BLOCK"
+  },
+  "body": "[stack:\n  [opcode:data_changevariableby\n    id:\"c1\"\n    fields:{VARIABLE:\"x\"}\n    inputs:{VALUE:[literal:number:1]}\n    stacks:{}\n  ]\n]"
+}
+```
+ 
+Target shapes:
+ 
+| `target.type` | Required field | Meaning |
+|---|---|---|
+| `"procedure"` | `proccode` (string) | First `[procedure]` root whose proccode matches exactly |
+| `"script"` | `index` (integer ≥ 0) | Nth `[script]` root, 0-based among script roots only |
+| omitted | — | Root at index 0 (single-root backward compatibility) |
+ 
+Current semantics:
+- `body` is parsed as a standalone `[stack:...]` node before being applied
+- parse errors in the body surface immediately as patch errors
+- the overall round-trip re-parse runs after all operations complete
+- the original body is not preserved on success — source IR is the rollback
+ 
+Validation:
+- `body` must be a non-empty IR string
+- `body` must parse as a valid stack node
+- if `target` is present, `target.type` must be `"procedure"` or `"script"`
+- `"procedure"` target requires a non-empty `proccode`
+- `"script"` target requires a non-negative integer `index` within range
+ 
+*/
+
 ## Example Patch
 
 ```json

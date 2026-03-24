@@ -357,6 +357,38 @@
         return 0;
     }
 
+    function setGhost(target, value) {
+        try {
+            if (typeof target.setEffect === 'function') {
+                target.setEffect('ghost', value);
+                return true;
+            }
+        } catch (e) {}
+
+        try {
+            if (target.effects) {
+                target.effects.ghost = value;
+                if (typeof target.emitVisualChange === 'function') {
+                    target.emitVisualChange();
+                }
+                runtime.requestRedraw();
+                return true;
+            }
+        } catch (e) {}
+
+        return false;
+    }
+
+    function getGhost(target) {
+        try {
+            if (target.effects && Number.isFinite(target.effects.ghost)) {
+                return target.effects.ghost;
+            }
+        } catch (e) {}
+
+        return 0;
+    }
+
     function startEffect(target, effect, seconds, speed) {
         const state = getTargetState(target);
         if (!state || target.isStage) return Promise.resolve();
@@ -372,15 +404,11 @@
         state.activeEffect = safeEffect;
 
         if (safeEffect === 'blink') {
-            const originalVisible = !!target.visible;
+            const originalGhost = getGhost(target);
             let toggle = false;
 
             state.effectRestore = () => {
-                try {
-                    if (typeof target.setVisible === 'function') {
-                        target.setVisible(originalVisible);
-                    }
-                } catch (e) {}
+                setGhost(target, originalGhost);
             };
 
             state.effectInterval = setInterval(() => {
@@ -388,11 +416,7 @@
                 if (!liveState || liveState.effectRunId !== runId) return;
 
                 toggle = !toggle;
-                try {
-                    if (typeof target.setVisible === 'function') {
-                        target.setVisible(toggle ? !originalVisible : originalVisible);
-                    }
-                } catch (e) {}
+                setGhost(target, toggle ? 100 : originalGhost);
             }, intervalMs);
         }
 

@@ -767,6 +767,85 @@
     }
   }
 
+    function resolveReplaceBodyTarget(roots, target) {
+    if (target === undefined || target === null) {
+      if (!roots.length) {
+        throw new ValidationError('replace_body: no roots to target');
+      }
+      return 0;
+    }
+ 
+    const type = target.type;
+ 
+    if (type === 'procedure') {
+      const proccode = target.proccode;
+      if (typeof proccode !== 'string' || !proccode) {
+        throw new ValidationError(
+          'replace_body: target.type "procedure" requires a non-empty proccode'
+        );
+      }
+      const idx = roots.findIndex(
+        r => r.type === 'procedure' && r.proccode === proccode
+      );
+      if (idx === -1) {
+        throw new ValidationError(
+          `replace_body: no procedure root found with proccode "${proccode}"`
+        );
+      }
+      return idx;
+    }
+ 
+    if (type === 'script') {
+      const rawIndex = target.index;
+      if (typeof rawIndex !== 'number' || !Number.isFinite(rawIndex) || rawIndex < 0) {
+        throw new ValidationError(
+          'replace_body: target.type "script" requires a non-negative integer index'
+        );
+      }
+      const scriptRootIndices = roots
+        .map((r, i) => (r.type === 'script' ? i : -1))
+        .filter(i => i !== -1);
+      const scriptIndex = Math.floor(rawIndex);
+      if (scriptIndex >= scriptRootIndices.length) {
+        throw new ValidationError(
+          `replace_body: script index ${scriptIndex} out of range ` +
+          `(${scriptRootIndices.length} script root(s) present)`
+        );
+      }
+      return scriptRootIndices[scriptIndex];
+    }
+ 
+    throw new ValidationError(
+      `replace_body: unknown target.type "${type}" — must be "procedure" or "script"`
+    );
+  }
+ 
+  function applyReplaceBody(roots, operation) {
+    const rootIndex = resolveReplaceBodyTarget(roots, operation.target);
+ 
+    const bodyText = operation.body;
+    if (typeof bodyText !== 'string' || !bodyText.trim()) {
+      throw new ValidationError(
+        'replace_body: operation.body must be a non-empty IR string'
+      );
+    }
+ 
+    // Parse body in isolation by wrapping as a temporary [script].
+    // This surfaces body parse errors immediately with a useful message.
+    const wrappedText = `[script\n  body:${bodyText.trim()}\n]`;
+    let parsedBody;
+    try {
+      const tempRoot = new Parser(wrappedText).parse();
+      parsedBody = tempRoot.body;
+    } catch (err) {
+      throw new ValidationError(
+        `replace_body: body IR failed to parse — ${err && err.message ? err.message : String(err)}`
+      );
+    }
+ 
+    roots[rootIndex].body = parsedBody;
+  }
+
   function applyProjectPatch(roots, patch) {
     if (!patch || patch.version !== 1 || patch.target !== 'project' || !Array.isArray(patch.operations)) {
       throw new ValidationError('Invalid project patch');
@@ -794,6 +873,16 @@
         applyDetachTopLevelScripts(nextRoots, operation);
         continue;
       }
+
+      if (operation.op === 'replace_body') {
+          if (typeof operation.body !== 'string' || !operation.body.trim()) {
+            throw new ValidationError(
+              'replace_body requires a non-empty body IR string'
+            );
+          }
+          applyReplaceBody(nextRoots, operation);
+          continue;
+        }
 
       throw new ValidationError(`Unsupported patch op ${operation.op}`);
     }
