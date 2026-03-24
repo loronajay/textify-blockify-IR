@@ -22363,6 +22363,28 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
     if (!Scratch2.extensions.unsandboxed) {
       throw new Error("Blockify Phase 1 must be loaded unsandboxed.");
     }
+    const AI_MUTATION_RULES = `You are modifying Textify canon IR.
+
+Requirements:
+- Mutate only the IR provided below.
+- Preserve all unrelated structure.
+- Preserve opcode ids unless new nodes are required.
+- Keep fields, inputs, and stacks distinct.
+- Do not invent unsupported structure.
+- Return only valid Textify canon IR.
+- Do not include explanation outside the IR.
+
+IR:
+`;
+    function getLastExportedIR() {
+      const shared = globalThis.__TEXTIFY_SHARED__ || null;
+      if (!shared) return "";
+      return typeof shared.lastExportText === "string" ? shared.lastExportText : "";
+    }
+    function hasValidExportedIR() {
+      const text = getLastExportedIR().trim();
+      return text.startsWith("[procedure") || text.startsWith("[script");
+    }
     class ParseError extends Error {
       constructor(message) {
         super(message);
@@ -24894,6 +24916,11 @@ ${owner.lastVisualCssStatus}` : "\n\nVISUAL CSS:\n[none]";
               opcode: "getLastError",
               blockType: Scratch2.BlockType.REPORTER,
               text: "last Blockify error"
+            },
+            {
+              opcode: "copyRulesWithExportedIR",
+              blockType: Scratch2.BlockType.COMMAND,
+              text: "copy rules with exported IR"
             }
           ]
         };
@@ -24995,6 +25022,14 @@ ${owner.lastVisualCssStatus}` : "\n\nVISUAL CSS:\n[none]";
         }
         return copyTextToClipboard(this.lastPatchedIR);
       }
+      async copyRulesWithExportedIR() {
+        if (!hasValidExportedIR()) {
+          await copyTextToClipboard("no copied IR");
+          return;
+        }
+        const merged = `${AI_MUTATION_RULES}${getLastExportedIR()}`;
+        await copyTextToClipboard(merged);
+      }
       getLastError() {
         return this.lastError || "";
       }
@@ -25019,7 +25054,9 @@ ${owner.lastVisualCssStatus}` : "\n\nVISUAL CSS:\n[none]";
         updateEditorPreviewState,
         getPreferredPreviewIR,
         buildEditorStatusText,
-        refreshVisualPreview
+        refreshVisualPreview,
+        getLastExportedIR,
+        hasValidExportedIR
       };
     }
     Scratch2.extensions.register(new BlockifyPhase1());
