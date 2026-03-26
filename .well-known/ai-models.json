@@ -1,1 +1,70 @@
-{\n  "format_name": "AI Model Metadata",\n  "version": "1.0",\n  "grammar_url": "https://example.com/grammar",\n  "primer_url": "https://example.com/primer",\n  "supported_models": [\n    "model_1",\n    "model_2",\n    "model_3"\n  ],\n  "validation_rules": {\n    "rule_1": "Must be a string",\n    "rule_2": "Must be numeric"\n  },\n  "mutation_examples": [\n    {\n      "input": "input_example_1",\n      "output": "output_example_1"\n    },\n    {\n      "input": "input_example_2",\n      "output": "output_example_2"\n    }\n  ]\n}
+{
+  "$schema": "https://schema.org/SoftwareApplication",
+  "name": "turbowarp-extensions-canon",
+  "title": "Textify Canon IR / Blockify IR Specification",
+  "description": "Canonical Intermediate Representation for Scratch/TurboWarp block-based programs. Official specification for AI-assisted code mutation.",
+  "version": "1.0.0",
+  "status": "production",
+  "license": "MIT",
+  "author": {
+    "name": "Jay Lorona",
+    "url": "https://github.com/loronajay"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/loronajay/turbowarp-extensions-canon.git"
+  },
+  "homepage": "https://github.com/loronajay/turbowarp-extensions-canon",
+  "documentation": {
+    "specification": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md",
+    "full_reference": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_FULL_REFERENCE.md",
+    "primer": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/MODEL_PRIMER.md",
+    "api": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/API.md",
+    "compliance": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/COMPLIANCE.md",
+    "adoption": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/ADOPTION.md"
+  },
+  "ir_formats": {
+    "textify_canon_ir": {
+      "name": "Textify Canon IR",
+      "description": "Canonical text representation of Scratch/TurboWarp block programs",
+      "grammar_url": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md",
+      "mime_type": "text/plain",
+      "file_extension": ".ir",
+      "encoding": "UTF-8",
+      "version": "1.0.0",
+      "node_types": [
+        "procedure",
+        "script",
+        "stack",
+        "opcode",
+        "literal",
+        "menu"
+      ],
+      "example_url": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/reference/canonical-ir-examples.md"
+    },
+    "blockify_ir": {
+      "name": "Blockify IR",
+      "description": "IR format for visual block rendering in TurboWarp",
+      "grammar_url": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md",
+      "parser_url": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/blockify-turbowarp.js",
+      "version": "1.0.0"
+    }
+  },
+  "tools": {
+    "textify": {
+      "name": "Textify TurboWarp Extension",
+      "description": "Exports Scratch blocks to Textify Canon IR",
+      "file": "https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/textify-turbowarp.js",
+      "version": "1.0.0",
+      "capabilities": [
+        "export_single_block",
+        "export_all_stacks",
+        "copy_rules_with_ir",
+        "clipboard_integration"
+      ]
+    },
+    "blockify": {
+      "name": "Blockify TurboWarp Extension",
+      "description": "Renders Textify Canon IR as visual Scratch blocks",
+      "file": "](#)
+
