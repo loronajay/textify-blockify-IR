@@ -1,5 +1,24 @@
 # Project Status
 
+## LLM Optimization Update (2026-03-26)
+
+The repository has been optimized for Large Language Model (LLM) discovery and integration:
+
+### Discovery Infrastructure Added
+- **llms.txt** - General LLM platform discovery
+- **claude.txt** - Claude-specific discovery file  
+- **.well-known/ai-models.json** - Standard AI model metadata registry
+- **MODEL_PRIMER.md** - LLM-optimized quick-start guide
+
+### Documentation Updates
+- README.md enhanced with "For AI Models" section
+- package.json updated with LLM-relevant keywords
+- All references corrected to use "Intermediate Representation" terminology
+
+### AI Model Access
+- Direct grammar URL for AI models: `https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md`
+- See README.md "For AI Models" section for quick-start guidance
+
 ## Current State
 
 This repo is a two-extension pipeline for exporting, visualising, and AI-assisted editing of Scratch/TurboWarp block programs via a canonical text IR.
