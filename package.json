@@ -1,6 +1,15 @@
 {
-  "name": "canon",
+  "name": "turbowarp-extensions-canon",
+  "version": "1.0.0",
+  "description": "A deterministic IR transformation engine for Scratch/TurboWarp block-based programs. Enables AI-assisted code mutation via Textify Canon IR.",
   "private": true,
+  "author": "loronajay",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/loronajay/turbowarp-extensions-canon.git"
+  },
+  "homepage": "https://github.com/loronajay/turbowarp-extensions-canon",
   "scripts": {
     "test": "jest",
     "build:blockify": "node scripts/build-blockify-embedded.mjs"
@@ -10,6 +19,23 @@
       "**/__tests__/**/*.test.js"
     ]
   },
+  "keywords": [
+    "scratch",
+    "turbowarp",
+    "turbowarp-extension",
+    "scratch-extension",
+    "extension",
+    "textify-ir",
+    "blockify-ir",
+    "intermediate-representation",
+    "ir",
+    "ir-grammar",
+    "ai-mutation",
+    "code-generation",
+    "llm-optimization",
+    "ai-assisted-programming",
+    "block-based-programming"
+  ],
   "devDependencies": {
     "esbuild": "^0.27.4",
     "jest": "^30.3.0"
@@ -17,19 +43,5 @@
   "dependencies": {
     "blockly": "^12.5.1",
     "scratch-blocks": "^2.1.4"
-  },
-  "keywords": [
-  "scratch",
-  "turbowarp",
-  "textify-ir",
-  "blockify-ir",
-  "intermediate-representation",
-  "ir",
-  "ir-grammar",
-  "ai-mutation",
-  "code-generation",
-  "llm-optimization",
-  "ai-assisted-programming",
-  "block-based-programming"
-]
+  }
 }
