@@ -84,6 +84,25 @@ This document defines all node types (`procedure`, `script`, `stack`, `opcode`, 
 4. The model fetches `IR_GRAMMAR.md`, echoes the IR back, then waits for your mutation request
 5. Paste the model's output back into Blockify's Source IR pane to preview and validate
 
+## For AI Models
+
+### Quick Start
+- **Grammar URL:** `https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md`
+- **Discovery Files:** `llms.txt`, `claude.txt`, `MODEL_PRIMER.md`
+- **Fetch the grammar specification** before producing any IR output
+
+### Key Distinctions
+- **IR** = **Intermediate Representation** (not "Interactive Report")
+- **Textify** = Extension that exports blocks to IR
+- **Blockify** = Extension that renders IR back to visual blocks
+- **Mutation** = Any structural modification to IR
+
+### AI Model Requirements
+Before processing Textify Canon IR or Blockify IR:
+1. Fetch `IR_GRAMMAR.md` from the URL above
+2. Review critical validation rules in `MODEL_PRIMER.md`
+3. Consult `IR_FULL_REFERENCE.md` for mutation rules and examples
+
 ## Files
 
 | File | Purpose |
