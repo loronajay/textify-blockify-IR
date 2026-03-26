@@ -247,11 +247,13 @@ Values are always double-quoted strings.
 
 | Opcode | inputs | fields |
 |---|---|---|
-| `events_whenflagclicked` | *(hat, none)* | |
-| `events_whenkeypressed` | *(hat)* | `KEY_OPTION` |
-| `events_whenthisspriteclicked` | *(hat, none)* | |
-| `events_broadcast` | `BROADCAST_INPUT` | |
-| `events_broadcastandwait` | `BROADCAST_INPUT` | |
+| `event_whenflagclicked` | *(hat, none)* | |
+| `event_whenkeypressed` | *(hat)* | `KEY_OPTION` |
+| `event_whenthisspriteclicked` | *(hat, none)* | |
+| `event_broadcast` | `BROADCAST_INPUT` | |
+| `event_broadcastandwait` | `BROADCAST_INPUT` | |
+
+**`BROADCAST_INPUT` rule:** Use `[literal:string:"name"]` when the broadcast name is new or being renamed — this injects the name as a raw string and Scratch will register it. Use `[menu:event_broadcast_menu:"name"]` **only** when the broadcast already exists in the project with that exact registered name. When in doubt, use `[literal:string:...]` — it always works; the menu form fails silently for unregistered names.
 
 ### Sensing
 

@@ -109,7 +109,6 @@ Google Gemini 3 v2 behavioral round 1 (2026-03-24): **partial** — tests 1–2 
 
 ## Known Limits
 
-- custom block (`[procedure]`) rendering not yet implemented in Blockify
 - no natural-language-to-patch layer yet
 - no project-wide wrapper IR root yet
 - no sprite creation ops yet
@@ -120,11 +119,11 @@ Google Gemini 3 v2 behavioral round 1 (2026-03-24): **partial** — tests 1–2 
 Current Jest status at this checkpoint:
 
 - `15` test suites passing
-- `113` tests passing
+- `176` tests passing
 
 Coverage currently includes:
 
-- camera/leaderboards regressions
+- camera/leaderboards/DJ regressions
 - embedded `scratch-blocks` rendering regressions
 - script root support
 - Textify block registration (all remaining blocks)
