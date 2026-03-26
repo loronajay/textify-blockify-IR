@@ -661,6 +661,141 @@ IR:
     return result;
   }
 
+  function getStackRoot(target, blockId) {
+    // Walk up the parent chain following next/SUBSTACK connections.
+    // Returns the topLevel root block ID if blockId is a command in a stack,
+    // or null if it is a reporter/boolean used as an expression input.
+    let currentId = blockId;
+    while (true) {
+      const block = getBlock(target, currentId);
+      if (!block) return null;
+      if (block.topLevel) return currentId;
+      if (!block.parent) return currentId;
+
+      const parent = getBlock(target, block.parent);
+      if (!parent) return null;
+
+      if (parent.next === currentId) {
+        currentId = block.parent;
+        continue;
+      }
+
+      let isSubstack = false;
+      for (const key of Object.keys(parent.inputs || {})) {
+        if (parent.inputs[key].block === currentId && /^SUBSTACK/.test(key)) {
+          isSubstack = true;
+          break;
+        }
+      }
+
+      if (isSubstack) {
+        currentId = block.parent;
+        continue;
+      }
+
+      return null;
+    }
+  }
+
+  function exportAllStacksText(target) {
+    const stackIds = getTopLevelStackIds(target);
+    if (!stackIds.length) return '';
+    return stackIds.map(id => serializeScript(target, id)).join('\n\n');
+  }
+
+  function showPickerOverlay(onCancel) {
+    const old = document.getElementById('twgf-picker-overlay');
+    if (old) old.remove();
+
+    const div = document.createElement('div');
+    div.id = 'twgf-picker-overlay';
+    div.style.cssText = `
+      position:fixed;top:16px;left:50%;transform:translateX(-50%);
+      background:#1e1e1e;border:2px solid #4caf50;border-radius:10px;
+      padding:12px 20px;z-index:999999;display:flex;align-items:center;gap:12px;
+      color:white;font:14px sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.5);
+    `;
+
+    const label = document.createElement('span');
+    label.textContent = 'Click any block to export — right-click or Escape to cancel';
+    const btn = document.createElement('button');
+    btn.textContent = 'Cancel';
+    btn.style.cssText = `
+      padding:4px 10px;border-radius:6px;border:1px solid #666;
+      background:#2d2d2d;color:white;cursor:pointer;
+    `;
+    btn.onclick = onCancel;
+    div.append(label, btn);
+    document.body.appendChild(div);
+    return div;
+  }
+
+  function removePickerOverlay() {
+    const el = document.getElementById('twgf-picker-overlay');
+    if (el) el.remove();
+  }
+
+  async function waitForBlockClick() {
+    return new Promise((resolve, reject) => {
+      const ws = typeof ScratchBlocks !== 'undefined' ? ScratchBlocks.getMainWorkspace() : null;
+      if (!ws) {
+        reject(new Error('ScratchBlocks workspace not available'));
+        return;
+      }
+
+      function cleanup() {
+        ws.removeChangeListener(onWsEvent);
+        document.removeEventListener('contextmenu', onRightClick, true);
+        document.removeEventListener('keydown', onKeyDown, true);
+        removePickerOverlay();
+      }
+
+      function cancel() {
+        cleanup();
+        reject(new Error('cancelled'));
+      }
+
+      function onWsEvent(event) {
+        const SEL = (ScratchBlocks.Events && ScratchBlocks.Events.SELECTED) || 'selected';
+        const UI = (ScratchBlocks.Events && ScratchBlocks.Events.UI) || 'ui';
+
+        let blockId = null;
+        if (event.type === SEL && event.newElementId) {
+          blockId = event.newElementId;
+        } else if (event.type === UI && event.element === 'click' && event.blockId) {
+          blockId = event.blockId;
+        }
+
+        if (!blockId) return;
+
+        cleanup();
+
+        const targets = vm.runtime.targets || [];
+        for (const target of targets) {
+          if (getBlock(target, blockId)) {
+            resolve({ blockId, target });
+            return;
+          }
+        }
+        reject(new Error('Block not found in any target'));
+      }
+
+      function onRightClick(e) {
+        e.preventDefault();
+        cancel();
+      }
+
+      function onKeyDown(e) {
+        if (e.key === 'Escape') cancel();
+      }
+
+      showPickerOverlay(cancel);
+      ws.addChangeListener(onWsEvent);
+      document.addEventListener('contextmenu', onRightClick, true);
+      document.addEventListener('keydown', onKeyDown, true);
+    });
+  }
+
   async function exportStackAndPresent(target, index, options = {}) {
     const result = exportTopLevelStackText(target, index);
     lastExportText = result;
@@ -785,6 +920,22 @@ IR:
             opcode: 'copyRulesWithClipboardIR',
             blockType: Scratch.BlockType.COMMAND,
             text: 'copy rules with clipboard IR'
+          },
+          {
+            opcode: 'textifyClickedBlock',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'textify clicked block to clipboard'
+          },
+          {
+            opcode: 'copyAllStacksToClipboard',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'copy all stacks from sprite [SPRITE] to clipboard',
+            arguments: {
+              SPRITE: {
+                type: Scratch.ArgumentType.STRING,
+                defaultValue: 'Sprite1'
+              }
+            }
           }
         ]
       };
@@ -866,6 +1017,44 @@ IR:
       await exportAndPresent(target, args.PROCNAME, { copy: true, popup: false });
     }
 
+    async textifyClickedBlock() {
+      let blockId, target;
+      try {
+        ({ blockId, target } = await waitForBlockClick());
+      } catch {
+        return;
+      }
+
+      const rootId = getStackRoot(target, blockId);
+      let ir;
+      if (rootId) {
+        const rootBlock = getBlock(target, rootId);
+        if (rootBlock && rootBlock.opcode === 'procedures_definition') {
+          ir = serializeProcedure(target, rootId, '');
+        } else {
+          ir = serializeScript(target, rootId);
+        }
+      } else {
+        ir = serializeNode(target, blockId);
+      }
+
+      lastExportText = ir;
+      globalThis.__TEXTIFY_SHARED__.lastExportText = ir;
+      await copyTextToClipboard(`${IR_SPEC_HEADER}\n${ir}`);
+    }
+
+    async copyAllStacksToClipboard(args) {
+      const target = getTargetByName(args.SPRITE);
+      if (!target) {
+        lastExportText = `Sprite not found: ${args.SPRITE}`;
+        return;
+      }
+      const ir = exportAllStacksText(target);
+      lastExportText = ir;
+      globalThis.__TEXTIFY_SHARED__.lastExportText = ir;
+      await copyTextToClipboard(`${IR_SPEC_HEADER}\n${ir}`);
+    }
+
     async copyRulesWithClipboardIR() {
       const raw = (await readClipboardText()).trim();
       const ir = raw.replace(/^#[^\n]*\n?/gm, '').trim();
@@ -885,7 +1074,9 @@ IR:
       exportProcedureText,
       exportTopLevelStackText,
       serializeScript,
-      exportAndPresent
+      exportAndPresent,
+      getStackRoot,
+      exportAllStacksText
     };
   }
 
