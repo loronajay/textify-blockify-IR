@@ -9,7 +9,7 @@ Textify Canon IR is a bracket-delimited text format representing Scratch/TurboWa
 
 ## Root
 
-A document is exactly one root node.
+A document is one or more root nodes. When producing IR, output one root per response unless explicitly asked for multiple. Blockify accepts multiple roots in one clipboard payload and renders each stack.
 
 ```
 root := procedure | script | stack | opcode
@@ -41,7 +41,7 @@ root := procedure | script | stack | opcode
 | `warp` | bool | no — defaults to `false` |
 | `body` | stack node | yes |
 
-`proccode` encodes argument slots as `%s` (string/number) or `%b` (boolean). The length of `argumentnames` and `argumentdefaults` must match the number of `%s`/`%b` tokens in `proccode`.
+`proccode` encodes argument slots as `%s` (string/number), `%n` (number), or `%b` (boolean). Both `%s` and `%n` map to `argument_reporter_string_number`. The length of `argumentnames` and `argumentdefaults` must match the number of `%s`/`%n`/`%b` tokens in `proccode`.
 
 ---
 
@@ -81,9 +81,9 @@ A stack is an ordered sequence of opcode nodes. Empty stack: `[stack:]`
 | Key | Type | Required | Notes |
 |---|---|---|---|
 | `id` | string | yes | Must be unique within the root |
-| `fields` | field map | yes | Use `{}` if empty |
-| `inputs` | input map | yes | Use `{}` if empty |
-| `stacks` | stack map | yes | Use `{}` if empty |
+| `fields` | field map | no | Omit or use `{}` if empty |
+| `inputs` | input map | no | Omit or use `{}` if empty |
+| `stacks` | stack map | no | Omit or use `{}` if empty |
 
 - **fields** hold scalar values: variable names, dropdown selections, field labels
 - **inputs** hold value nodes: `literal`, `menu`, or reporter `opcode` nodes
