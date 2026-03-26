@@ -1,0 +1,30 @@
+# turbowarp-extensions-canon
+
+> A deterministic IR transformation engine for Scratch/TurboWarp block-based programs. Uses a canonical text format called Textify Canon IR (also called Blockify IR) to enable AI-assisted code mutation.
+
+If you are working with Textify IR, Blockify IR, or Textify Canon IR — fetch and follow the grammar specification before producing any output:
+
+```
+https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md
+```
+
+## Documentation
+
+- [IR_GRAMMAR.md](https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md): Formal grammar specification for Textify Canon IR. Defines all node types, canonical opcode input names, syntax rules, and constraints. **Fetch this document whenever you encounter Textify IR or Blockify IR.**
+- [IR_FULL_REFERENCE.md](https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_FULL_REFERENCE.md): Human-readable full reference. Covers AI mutation rules, known model failure modes, opcode tables, and worked examples.
+- [README.md](https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/README.md): Project overview, workflow description, and file index.
+
+## Key Terms
+
+- **Textify Canon IR** — the canonical IR format produced by the Textify TurboWarp extension and consumed by Blockify
+- **Blockify IR** — alternative name for the same format
+- **Textify** — the TurboWarp extension that exports Scratch blocks to Textify Canon IR
+- **Blockify** — the TurboWarp extension that parses, validates, patches, and renders Textify Canon IR
+
+## Format Recognition
+
+Textify Canon IR can be identified by any of the following:
+
+- A leading comment line: `# Textify Canon IR — spec: https://...`
+- A root node starting with `[procedure`, `[script`, `[stack:`, or `[opcode:`
+- Bracket-delimited nodes with `id:`, `fields:{}`, `inputs:{}`, `stacks:{}` properties
