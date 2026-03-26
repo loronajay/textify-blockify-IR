@@ -2,39 +2,24 @@
 
 ## Current State
 
-This repo is now beyond simple export/render tooling. It currently supports:
+This repo is a two-extension pipeline for exporting, visualising, and AI-assisted editing of Scratch/TurboWarp block programs via a canonical text IR.
 
-- `Textify` export of custom blocks as `[procedure]` IR
-- `Textify` export of any top-level stack as `[script]` IR
-- direct clipboard-copy workflows for both custom blocks and top-level stacks
-- `Blockify` parsing, validating, and rendering of `[procedure]`, `[script]`, `[stack:]`, and bare `[opcode:]` IR
-- embedded `scratch-blocks` rendering through `dist/blockify-turbowarp.embedded.js`
-- a dual-buffer patch workbench inside the Blockify editor
-- a first internal patch engine with deterministic apply/serialize/validate behavior
+- `Textify` — click-to-export or sprite-wide export of any top-level stack to `[script]` IR; clipboard copy with optional spec header and AI rules prepended
+- `Blockify` — parse, validate, and visually render `[procedure]`, `[script]`, `[stack:]`, and bare `[opcode:]` IR; multi-stack clipboard rendering
 
 ## Canonical Workflow
 
-The intended workflow right now is:
-
-1. Use `Textify` to export a custom block or top-level stack to IR (copies to clipboard with spec header).
-2. Use Textify's **`copy rules with clipboard IR`** block to prepend the canonical AI mutation rules to whatever IR is on the clipboard, and copy the merged payload back to clipboard in one step.
+1. Use Textify's **`textify clicked block to clipboard`** block — click any block in the editor to export its whole stack as IR (with spec header).
+2. Optionally use Textify's **`copy rules with clipboard IR`** block — reads IR from clipboard, prepends the canonical AI mutation rules and grammar URL, copies back.
 3. Paste into an AI model.
-4. Have the model produce patch JSON or edited IR.
-5. Open `Blockify`.
-6. Paste source IR into `Source IR`.
-7. Paste patch JSON into `Patch JSON`.
-8. Apply patch and inspect the visual result.
-9. Copy the patched IR or use it as the new source.
-
-Step 2 reads from the clipboard directly, so there is no distinction between Textify-exported IR and any other IR source. The `copy rules with clipboard IR` block lives in Textify because it belongs to the export/AI-handoff side of the pipeline.
+4. The model fetches `IR_GRAMMAR.md`, echoes the IR, then performs the requested mutation.
+5. Use Blockify's **`blockify clipboard contents`** block — renders the AI-returned IR visually.
 
 ## Implemented
 
 ### Textify
 
-File: [textify-turbowarp.js](/Users/leoja/Desktop/Dad%20Games/turbowarp-extensions-js/canon/textify-turbowarp.js)
-
-Implemented:
+File: [textify-turbowarp.js](textify-turbowarp.js)
 
 - **`textify clicked block to clipboard`** — waits for the user to click any block in the editor; serializes from the top of the stack (whole stack always); reporters/booleans export as bare `[opcode:]` nodes; cancels on right-click, Escape, or Cancel button
 - **`copy all stacks from sprite [SPRITE] to clipboard with rules`** — exports all top-level stacks from a named sprite as `[script]` IR with spec header; procedure definitions excluded; the running script excludes itself via `util.thread.topBlock`
@@ -46,9 +31,7 @@ Implemented:
 
 ### Blockify
 
-File: [blockify-turbowarp.js](/Users/leoja/Desktop/Dad%20Games/turbowarp-extensions-js/canon/blockify-turbowarp.js)
-
-Implemented:
+File: [blockify-turbowarp.js](blockify-turbowarp.js)
 
 - parse and validate `[procedure]` roots
 - parse and validate `[script]` roots
@@ -57,43 +40,24 @@ Implemented:
 - string literals render as orange variable-style reporter blocks in the visual renderer
 - visual render fallback renderer
 - embedded `scratch-blocks` renderer path
-- clipboard preview window
-- IR editor with:
-  - `Source IR`
-  - `Patch JSON`
-  - `Patched IR Result`
-  - visual preview
+- clipboard preview window with IR editor (`Source IR` pane) and visual preview
 - button row pinned at the bottom of the editor
-- **`blockify clipboard contents`** command block: loads clipboard IR and renders all block stacks in it; previously named "load clipboard IR"
-- **`clipboard contents`** reporter block: reads the clipboard and returns its text, displayed in a value bubble when clicked
+- **`blockify clipboard contents`** command block: loads clipboard IR and renders all block stacks in it
+- **`clipboard contents`** reporter block: reads the clipboard and returns its text
 - `Parser.parseAll()` — parses multiple root nodes from one IR string (enables multi-stack clipboard rendering)
-- multi-root rendering: all stacks loaded into a single scratch-blocks workspace via combined XML; stacks are spread horizontally with a configurable `margin` (default 400px) to prevent overlap
+- multi-root rendering: all stacks loaded into a single scratch-blocks workspace via combined XML; stacks spread horizontally at 400px intervals to prevent overlap
 - parser tolerates leading `# comment` lines (e.g. the spec header emitted by Textify)
 
-Embedded build artifact:
-
-- [dist/blockify-turbowarp.embedded.js](/Users/leoja/Desktop/Dad%20Games/turbowarp-extensions-js/canon/dist/blockify-turbowarp.embedded.js)
-
-## Patch Surface
-
-Current patch schema version:
-
-- `version: 1`
-- `target: "project"`
-
-Current supported operations:
-
-- `rename_variable`
-- `detach_top_level_scripts`
+Embedded build artifact: [dist/blockify-turbowarp.embedded.js](dist/blockify-turbowarp.embedded.js)
 
 ## Canonical AI Mutation Samples
 
 Canonical benchmark-style mutation samples are documented in:
 
-- [AI_MUTATION_BENCHMARKS.md](/Users/leoja/Desktop/Dad%20Games/turbowarp-extensions-js/canon/AI_MUTATION_BENCHMARKS.md)
-- [GOOGLE_AI_ROUNDTRIP_HISTORY.md](/Users/leoja/Desktop/Dad%20Games/turbowarp-extensions-js/canon/GOOGLE_AI_ROUNDTRIP_HISTORY.md)
-- [CHATGPT_ROUNDTRIP_HISTORY.md](/Users/leoja/Desktop/Dad%20Games/turbowarp-extensions-js/canon/CHATGPT_ROUNDTRIP_HISTORY.md)
-- [CLAUDE_ROUNDTRIP_HISTORY.md](/Users/leoja/Desktop/Dad%20Games/turbowarp-extensions-js/canon/CLAUDE_ROUNDTRIP_HISTORY.md)
+- [AI_MUTATION_BENCHMARKS.md](AI_MUTATION_BENCHMARKS.md)
+- [GOOGLE_AI_ROUNDTRIP_HISTORY.md](GOOGLE_AI_ROUNDTRIP_HISTORY.md)
+- [CHATGPT_ROUNDTRIP_HISTORY.md](CHATGPT_ROUNDTRIP_HISTORY.md)
+- [CLAUDE_ROUNDTRIP_HISTORY.md](CLAUDE_ROUNDTRIP_HISTORY.md)
 
 These record nontrivial LLM mutation tasks that go beyond simple scalar edits, including:
 
@@ -116,48 +80,13 @@ Claude Sonnet 4.6 round 1 (2026-03-24): **partial** — 2/4 pass before Poe cred
 
 Google Gemini 3 v2 behavioral round 1 (2026-03-24): **partial** — tests 1–2 clean pass from behavioral prompts alone. Test 3 parsed/validated but Blockify fell back to the fallback renderer (under investigation). Test 4 showed unintended threshold adjustment (50→49) on operator swap from behavioral description. Tests 5–8 not reached. See `GOOGLE_AI_ROUNDTRIP_HISTORY.md`.
 
-## Architecture Boundary
-
-The current architectural boundary between structural core and Scratch/TurboWarp adapter detail is documented in:
-
-- [ARCHITECTURE_BOUNDARIES.md](/Users/leoja/Desktop/Dad%20Games/turbowarp-extensions-js/canon/ARCHITECTURE_BOUNDARIES.md)
-
-This file should be used as the canonical record for:
-
-- what is currently core
-- what is currently adapter-specific
-- how to think about future abstraction without destabilizing the current system
-
-Current behavior:
-
-- patching is applied to parsed AST, not raw text directly
-- patched output is serialized back to canonical IR
-- patched output is re-parsed for validation before success is returned
-- source IR is preserved
-- failed patches do not overwrite previous successful patched IR
-- changing source IR invalidates stale patched IR
-
-## Internal Patch Runner
-
-Internal helpers currently exist for:
-
-- apply patch object to IR text
-- apply patch JSON text to IR text
-
-These return structured results:
-
-- success: `{ ok: true, ir: "..." }`
-- failure: `{ ok: false, error: "..." }`
-
 ## Known Limits
 
-- no user-facing patch language help yet
+- custom block (`[procedure]`) rendering not yet implemented in Blockify
 - no natural-language-to-patch layer yet
 - no project-wide wrapper IR root yet
-- no sprite creation patch ops yet
+- no sprite creation ops yet
 - no logic-review/lint engine yet
-- top-level stack export currently uses sprite + stack index, not visual selection
-- patch editor does not yet surface patch errors inside the patched-result pane itself
 
 ## Testing Status
 
@@ -173,22 +102,17 @@ Coverage currently includes:
 - script root support
 - Textify block registration (all remaining blocks)
 - `getStackRoot` helper (next-chain, SUBSTACK, reporter, detached, unknown)
-- `exportAllStacksText` (empty target, single stack, multi-stack, procedure exclusion)
+- `exportAllStacksText` (empty target, single stack, multi-stack, procedure exclusion, self-exclusion)
 - `copyAllStacksToClipboard` / `copyAllStacksPlain` (sprite lookup, clipboard payload, shared state, self-exclusion via util)
 - `getExportedIR` reporter
 - `textifyClickedBlock` (graceful no-op when ScratchBlocks unavailable)
-- patch engine operations
-- patch workflow state behavior
-- editor layout behavior
 - Textify/Blockify shared state bridge (`__TEXTIFY_SHARED__`)
 - `copyRulesWithClipboardIR` block behavior (all cases)
 - `readClipboard` / `loadClipboardIR` / `clipboardIRMatchesBuffer` block behavior
+- clipboard preview workflow and editor layout
 
 ## Next Likely Steps
 
-Most likely next directions:
-
-1. Grow the internal patch surface with more safe edit ops.
-2. Improve patch workbench UX for faster testing.
-3. Introduce project-level operations after script-level patching is mature.
-4. Add diagnostics/linting as a separate layer from patching.
+1. Implement `[procedure]` rendering in Blockify.
+2. Grow IR coverage for more Scratch opcodes in the visual renderer.
+3. Resume AI model roundtrip testing with the updated pipeline.
