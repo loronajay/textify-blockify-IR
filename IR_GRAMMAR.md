@@ -139,6 +139,25 @@ Used inside `procedure` bodies to reference argument values.
 
 ---
 
+### procedures_call
+
+Invokes a custom block. Appears as a stack block (command) whenever a defined custom block is used.
+
+```
+[opcode:procedures_call
+  id:"ID"
+  fields:{PROCCODE:"MY BLOCK %s %n"}
+  inputs:{ARG_ID_0:node ARG_ID_1:node ...}
+  stacks:{}
+]
+```
+
+- `PROCCODE` in `fields` must match the `proccode` of the target `[procedure]`.
+- Input keys are the argument IDs assigned at definition time (e.g. `arg0`, `arg1`). The number of inputs must match the number of `%s`/`%n`/`%b` tokens in `proccode`.
+- `PROCCODE` is used for mutation generation only and is filtered from the rendered field list.
+
+---
+
 ## String Array Syntax
 
 ```
@@ -220,6 +239,7 @@ Values are always double-quoted strings.
 | `control_wait` | `DURATION` | | |
 | `control_wait_until` | `CONDITION` | | |
 | `control_stop` | *(none)* | | `STOP_OPTION` |
+| `control_create_clone_of` | `CLONE_OPTION` (menu) | | |
 | `control_delete_this_clone` | *(none)* | | |
 | `control_start_as_clone` | *(hat)* | | |
 

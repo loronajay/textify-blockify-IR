@@ -28,7 +28,7 @@ These rules apply to every mutation task. Follow them exactly.
 
 ### Root Types
 
-Every IR document has exactly one root node. The root must be `[procedure]`, `[script]`, `[stack:]`, or a bare `[opcode:...]`.
+A document is one or more root nodes. The root must be `[procedure]`, `[script]`, `[stack:]`, or a bare `[opcode:...]`. Blockify accepts multiple roots in one clipboard payload and renders each stack.
 
 Bare `[stack:]` and `[opcode:...]` roots are accepted by Blockify as a convenience for AI-produced fragments. They are wrapped into a synthetic `[script]` internally before validation and rendering. Textify always produces `[procedure]` or `[script]` roots.
 
@@ -109,9 +109,9 @@ Represents a single Scratch block.
 | Property | Type | Required | Notes |
 |---|---|---|---|
 | `id` | string | yes | Must be unique within the root |
-| `fields` | field map | yes | Use `{}` if empty |
-| `inputs` | input map | yes | Use `{}` if empty |
-| `stacks` | stack map | yes | Use `{}` if empty — or omit substacks for non-control blocks |
+| `fields` | field map | no | Omit or use `{}` if empty |
+| `inputs` | input map | no | Omit or use `{}` if empty |
+| `stacks` | stack map | no | Omit or use `{}` if empty |
 
 **Fields** hold scalar values like variable names, field dropdown values:
 
@@ -197,6 +197,25 @@ Used inside procedure bodies to reference argument values.
 
 ---
 
+### procedures_call
+
+Invokes a custom block. Produced by textify whenever a sprite uses a defined custom block.
+
+```
+[opcode:procedures_call
+  id:"call1"
+  fields:{PROCCODE:"My Block %s %n"}
+  inputs:{arg0:[literal:string:"hello"] arg1:[literal:number:42]}
+  stacks:{}
+]
+```
+
+- `PROCCODE` in `fields` must exactly match the `proccode` of the target `[procedure]`.
+- Input keys are the argument IDs from the procedure definition (e.g. `arg0`, `arg1`). Count must match the `%s`/`%n`/`%b` tokens in `proccode`.
+- `PROCCODE` is used for mutation generation only; it does not appear as a rendered field on the block.
+
+---
+
 ## Common Opcode Reference
 
 ### Motion
@@ -238,8 +257,13 @@ Used inside procedure bodies to reference argument values.
 | `control_repeat` | `TIMES` | `SUBSTACK` |
 | `control_forever` | *(none)* | `SUBSTACK` |
 | `control_repeat_until` | `CONDITION` | `SUBSTACK` |
+| `control_while` | `CONDITION` | `SUBSTACK` |
 | `control_wait` | `DURATION` | *(none)* |
+| `control_wait_until` | `CONDITION` | *(none)* |
 | `control_stop` | field `STOP_OPTION` | *(none)* |
+| `control_create_clone_of` | `CLONE_OPTION` (menu) | *(none)* |
+| `control_delete_this_clone` | *(none)* | *(none)* |
+| `control_start_as_clone` | *(hat)* | *(none)* |
 
 ### Operators
 | Opcode | Inputs | Notes |
@@ -257,10 +281,13 @@ Used inside procedure bodies to reference argument values.
 | `operator_mod` | `NUM1`, `NUM2` | |
 | `operator_random` | `FROM`, `TO` | |
 | `operator_round` | `NUM` | |
+| `operator_mathop` | `NUM` | field `OPERATOR` |
 | `operator_join` | `STRING1`, `STRING2` | |
+| `operator_letter_of` | `LETTER`, `STRING` | |
 | `operator_length` | `STRING` | |
+| `operator_contains` | `STRING1`, `STRING2` | |
 
-### Data (Variables)
+### Data (Variables and Lists)
 | Opcode | Fields | Inputs |
 |---|---|---|
 | `data_setvariableto` | `VARIABLE` | `VALUE` |
@@ -268,6 +295,17 @@ Used inside procedure bodies to reference argument values.
 | `data_showvariable` | `VARIABLE` | *(none)* |
 | `data_hidevariable` | `VARIABLE` | *(none)* |
 | `data_variable` | `VARIABLE` | *(reporter)* |
+| `data_addtolist` | `LIST` | `ITEM` |
+| `data_deleteoflist` | `LIST` | `INDEX` |
+| `data_deletealloflist` | `LIST` | *(none)* |
+| `data_insertatlist` | `LIST` | `ITEM`, `INDEX` |
+| `data_replaceitemoflist` | `LIST` | `ITEM`, `INDEX` |
+| `data_itemoflist` | `LIST` | `INDEX` |
+| `data_itemnumoflist` | `LIST` | `ITEM` |
+| `data_lengthoflist` | `LIST` | *(reporter)* |
+| `data_listcontainsitem` | `LIST` | `ITEM` |
+| `data_showlist` | `LIST` | *(none)* |
+| `data_hidelist` | `LIST` | *(none)* |
 
 ### Events
 | Opcode | Notes |

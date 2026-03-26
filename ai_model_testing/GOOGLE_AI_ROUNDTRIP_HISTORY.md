@@ -524,6 +524,7 @@ Interpretation:
 - **Tooling:** `copy rules with IR buffer` block in Blockify embedded renderer
 - **Renderer:** full embedded scratch-blocks (real block images, not fallback)
 - **Test source:** `AI_MODEL_TEST_LEDGER.md` — 8 structured tests across IR-A and IR-B
+- **Session structure:** all 8 tests run in succession in the same chat session; re-anchoring to the starting IR was required before tests 4 and 5
 
 ### Results Summary
 
@@ -546,7 +547,7 @@ On tests 4 and 5, Google Gemini (current) carried state from prior mutations in 
 
 Both tests required explicitly prompting the model to return to the correct starting IR before producing the mutation. Once re-anchored, the correct output was produced on the next attempt.
 
-**Implication:** When running multiple tests against Google Gemini (current) in a single session, structural context from earlier mutations can bleed into later outputs. Tests 4 and 5 are structurally downstream of 3 in terms of nesting complexity, which may have amplified the drift. Starting a fresh session per test would avoid this.
+**Implication:** When running multiple tests against Google Gemini (current) in a single session, structural context from earlier mutations can bleed into later outputs. Tests 4 and 5 are structurally downstream of 3 in terms of nesting complexity, which may have amplified the drift. Re-anchoring the model to the starting IR before each test (the continuation prompt approach formalized in the ChatGPT round) is the standard mitigation.
 
 ### Round 2 Significance
 
@@ -569,7 +570,8 @@ The session context bleed finding is the only meaningful limitation observed.
 - **Date:** 2026-03-24
 - **Tooling:** `copy rules with IR buffer` block in Blockify embedded renderer
 - **Test source:** `ai-model-test-ledger-v2.html` — 8 behavioral prompt tests across IR-A and IR-B
-- **Note:** Prompts describe intended behavior rather than direct structural operations. Testing stopped at test 4.
+- **Session structure:** tests run in succession in the same chat session; testing stopped at test 4
+- **Note:** Prompts describe intended behavior rather than direct structural operations.
 
 ### Results Summary
 

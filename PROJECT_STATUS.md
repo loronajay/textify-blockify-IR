@@ -9,7 +9,7 @@ This repo is a two-extension pipeline for exporting, visualising, and AI-assiste
 
 ## Canonical Workflow
 
-1. Use Textify's **`textify clicked block to clipboard`** block — click any block in the editor to export its whole stack as IR (with spec header).
+1. Use Textify's **`textify clicked block to clipboard`** block — click any block in the editor to export its whole stack as IR.
 2. Optionally use Textify's **`copy rules with clipboard IR`** block — reads IR from clipboard, prepends the canonical AI mutation rules and grammar URL, copies back.
 3. Paste into an AI model.
 4. The model fetches `IR_GRAMMAR.md`, echoes the IR, then performs the requested mutation.
@@ -21,10 +21,18 @@ This repo is a two-extension pipeline for exporting, visualising, and AI-assiste
 
 File: [textify-turbowarp.js](textify-turbowarp.js)
 
-- **`textify clicked block to clipboard`** — waits for the user to click any block in the editor; serializes from the top of the stack (whole stack always); reporters/booleans export as bare `[opcode:]` nodes; cancels on right-click, Escape, or Cancel button
+- **`textify clicked block to clipboard`** — waits for the user to click any block in the editor; serializes from the top of the stack (whole stack always); reporters/booleans export as bare `[opcode:]` nodes; cancels on right-click, Escape, or Cancel button.
+
+`single blocks/variables`: click any single block to retrieve its IR.
+
+`FOR CUSTOM BLOCKS/STACKS`: click on just the custom block header to textify just the header. click on the stack to retrieve the header + the stack.
+
 - **`copy all stacks from sprite [SPRITE] to clipboard with rules`** — exports all top-level stacks from a named sprite as `[script]` IR with spec header; procedure definitions excluded; the running script excludes itself via `util.thread.topBlock`
+
 - **`copy all stacks from sprite [SPRITE] plain`** — same as above, no spec header (for debugging); also self-excluding
+
 - **`copy rules with clipboard IR`** — reads IR from clipboard, strips any spec header, prepends canonical AI mutation rules, copies merged payload back to clipboard; copies `no copied IR` if clipboard does not contain valid IR
+
 - **`exported IR`** reporter — returns the last IR exported in this session
 - explicit menu export support for `looks_backdrops` and `looks_costume`
 - publishes last export to `globalThis.__TEXTIFY_SHARED__` for cross-extension reads
@@ -54,10 +62,10 @@ Embedded build artifact: [dist/blockify-turbowarp.embedded.js](dist/blockify-tur
 
 Canonical benchmark-style mutation samples are documented in:
 
-- [AI_MUTATION_BENCHMARKS.md](AI_MUTATION_BENCHMARKS.md)
-- [GOOGLE_AI_ROUNDTRIP_HISTORY.md](GOOGLE_AI_ROUNDTRIP_HISTORY.md)
-- [CHATGPT_ROUNDTRIP_HISTORY.md](CHATGPT_ROUNDTRIP_HISTORY.md)
-- [CLAUDE_ROUNDTRIP_HISTORY.md](CLAUDE_ROUNDTRIP_HISTORY.md)
+- [AI_MUTATION_BENCHMARKS.md](ai_model_testing/AI_MUTATION_BENCHMARKS.md)
+- [GOOGLE_AI_ROUNDTRIP_HISTORY.md](ai_model_testing/GOOGLE_AI_ROUNDTRIP_HISTORY.md)
+- [CHATGPT_ROUNDTRIP_HISTORY.md](ai_model_testing/CHATGPT_ROUNDTRIP_HISTORY.md)
+- [CLAUDE_ROUNDTRIP_HISTORY.md](ai_model_testing/CLAUDE_ROUNDTRIP_HISTORY.md)
 
 These record nontrivial LLM mutation tasks that go beyond simple scalar edits, including:
 
@@ -82,7 +90,8 @@ Google Gemini 3 v2 behavioral round 1 (2026-03-24): **partial** — tests 1–2 
 
 ## Known Limits
 
-- custom block (`[procedure]`) rendering implemented: header parses proccode into labels and typed argument slots; scratch-blocks XML includes argument reporter shadows inside `procedures_prototype`
+- custom block (`[procedure]`) rendering not yet implemented in Blockify
+- no natural-language-to-patch layer yet
 - no project-wide wrapper IR root yet
 - no sprite creation ops yet
 - no logic-review/lint engine yet
@@ -112,6 +121,5 @@ Coverage currently includes:
 
 ## Next Likely Steps
 
-1. Implement `[procedure]` rendering in Blockify.
-2. Grow IR coverage for more Scratch opcodes in the visual renderer.
-3. Resume AI model roundtrip testing with the updated pipeline.
+1. Grow IR coverage for more Scratch opcodes in the visual renderer.
+2. Resume AI model roundtrip testing with the updated pipeline.
