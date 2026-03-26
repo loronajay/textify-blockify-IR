@@ -481,23 +481,6 @@ IR:
 
   // ====== (UNCHANGED BELOW) ======
 
-  function findProcedureDefinition(target, procName) {
-    const blocks = target?.blocks?._blocks || {};
-    const wanted = String(procName).toLowerCase().trim();
-
-    for (const id in blocks) {
-      const block = blocks[id];
-      if (!block || block.opcode !== 'procedures_definition') continue;
-
-      const proto = getProcedurePrototype(block, target);
-      const code = proto?.mutation?.proccode || '';
-
-      if (String(code).toLowerCase().trim() === wanted) return id;
-    }
-
-    return null;
-  }
-
   function serializeProcedure(target, defId, fallbackProcName) {
     const def = getBlock(target, defId);
     if (!def) return `[error:${quoteString('Missing procedure definition block')}]`;
@@ -555,110 +538,12 @@ IR:
     return lines.join('\n');
   }
 
-  function exportProcedureText(target, procName) {
-    const defId = findProcedureDefinition(target, procName);
-    if (!defId) return `Custom block not found: ${procName}`;
-    return serializeProcedure(target, defId, procName);
-  }
-
-  function exportTopLevelStackText(target, index) {
-    const stackIds = getTopLevelStackIds(target);
-    const normalizedIndex = Math.max(1, Math.floor(Number(index) || 0));
-    const topBlockId = stackIds[normalizedIndex - 1];
-    if (!topBlockId) {
-      return `Top-level stack not found at index ${normalizedIndex}`;
-    }
-    return serializeScript(target, topBlockId);
-  }
-
-  function showPopup(text) {
-    const old = document.getElementById('twgf-export-popup');
-    if (old) old.remove();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'twgf-export-popup';
-    overlay.style.cssText = `
-      position:fixed;inset:0;background:rgba(0,0,0,.65);
-      z-index:999999;display:flex;align-items:center;justify-content:center;
-    `;
-
-    const panel = document.createElement('div');
-    panel.style.cssText = `
-      width:min(900px,90vw);height:min(650px,80vh);
-      background:#1e1e1e;border:2px solid #888;border-radius:12px;
-      padding:16px;display:flex;flex-direction:column;gap:12px;
-    `;
-
-    const title = document.createElement('div');
-    title.textContent = 'Textify-Turbowarp Export';
-    title.style.cssText = 'color:white;font:bold 18px sans-serif';
-
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.cssText = `
-      flex:1;width:100%;resize:none;background:#111;color:#0f0;
-      border:1px solid #666;border-radius:8px;padding:12px;
-      font:13px monospace;white-space:pre;
-    `;
-
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:8px;justify-content:flex-end';
-
-    const makeBtn = (txt, fn) => {
-      const btn = document.createElement('button');
-      btn.textContent = txt;
-      btn.onclick = fn;
-      btn.style.cssText = `
-        padding:8px 14px;border-radius:8px;border:1px solid #666;
-        background:#2d2d2d;color:white;cursor:pointer;
-      `;
-      return btn;
-    };
-
-    const copy = makeBtn('Copy', async () => {
-      textarea.select();
-      textarea.setSelectionRange(0, textarea.value.length);
-      try {
-        await navigator.clipboard.writeText(textarea.value);
-        copy.textContent = 'Copied!';
-        setTimeout(() => {
-          copy.textContent = 'Copy';
-        }, 1200);
-      } catch {
-        document.execCommand('copy');
-      }
-    });
-
-    const close = makeBtn('Close', () => overlay.remove());
-
-    row.append(copy, close);
-    panel.append(title, textarea, row);
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
-  }
-
   async function copyTextToClipboard(text) {
     if (navigator?.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
       return true;
     }
     return false;
-  }
-
-  async function exportAndPresent(target, procName, options = {}) {
-    const result = exportProcedureText(target, procName);
-    lastExportText = result;
-    globalThis.__TEXTIFY_SHARED__.lastExportText = lastExportText;
-
-    if (options.copy) {
-      await copyTextToClipboard(`${IR_SPEC_HEADER}\n${result}`);
-    }
-
-    if (options.popup) {
-      showPopup(result);
-    }
-
-    return result;
   }
 
   function getStackRoot(target, blockId) {
@@ -796,121 +681,12 @@ IR:
     });
   }
 
-  async function exportStackAndPresent(target, index, options = {}) {
-    const result = exportTopLevelStackText(target, index);
-    lastExportText = result;
-    globalThis.__TEXTIFY_SHARED__.lastExportText = lastExportText;
-
-    if (options.copy) {
-      await copyTextToClipboard(`${IR_SPEC_HEADER}\n${result}`);
-    }
-
-    if (options.popup) {
-      showPopup(result);
-    }
-
-    return result;
-  }
-
   class TextifyTurbowarp {
     getInfo() {
       return {
         id: 'textifyturbowarp',
         name: 'Textify-Turbowarp',
         blocks: [
-          {
-            opcode: 'exportCustomBlock',
-            blockType: Scratch.BlockType.COMMAND,
-            text: 'export custom block [PROCNAME] from sprite [SPRITE]',
-            arguments: {
-              PROCNAME: {
-                type: Scratch.ArgumentType.STRING,
-                defaultValue: 'my block'
-              },
-              SPRITE: {
-                type: Scratch.ArgumentType.STRING,
-                defaultValue: 'Sprite1'
-              }
-            }
-          },
-          {
-            opcode: 'exportFromEditingTarget',
-            blockType: Scratch.BlockType.COMMAND,
-            text: 'export custom block [PROCNAME] from current sprite',
-            arguments: {
-              PROCNAME: {
-                type: Scratch.ArgumentType.STRING,
-                defaultValue: 'my block'
-              }
-            }
-          },
-          {
-            opcode: 'exportTopLevelStack',
-            blockType: Scratch.BlockType.COMMAND,
-            text: 'export top-level stack [INDEX] from sprite [SPRITE]',
-            arguments: {
-              INDEX: {
-                type: Scratch.ArgumentType.NUMBER,
-                defaultValue: 1
-              },
-              SPRITE: {
-                type: Scratch.ArgumentType.STRING,
-                defaultValue: 'Sprite1'
-              }
-            }
-          },
-          {
-            opcode: 'copyTopLevelStackToClipboard',
-            blockType: Scratch.BlockType.COMMAND,
-            text: 'copy top-level stack [INDEX] from sprite [SPRITE] to clipboard',
-            arguments: {
-              INDEX: {
-                type: Scratch.ArgumentType.NUMBER,
-                defaultValue: 1
-              },
-              SPRITE: {
-                type: Scratch.ArgumentType.STRING,
-                defaultValue: 'Sprite1'
-              }
-            }
-          },
-          {
-            opcode: 'countTopLevelStacks',
-            blockType: Scratch.BlockType.REPORTER,
-            text: 'top-level stack count for sprite [SPRITE]',
-            arguments: {
-              SPRITE: {
-                type: Scratch.ArgumentType.STRING,
-                defaultValue: 'Sprite1'
-              }
-            }
-          },
-          {
-            opcode: 'copyCustomBlockToClipboard',
-            blockType: Scratch.BlockType.COMMAND,
-            text: 'copy custom block [PROCNAME] from sprite [SPRITE]',
-            arguments: {
-              PROCNAME: {
-                type: Scratch.ArgumentType.STRING,
-                defaultValue: 'my block'
-              },
-              SPRITE: {
-                type: Scratch.ArgumentType.STRING,
-                defaultValue: 'Sprite1'
-              }
-            }
-          },
-          {
-            opcode: 'copyFromEditingTargetToClipboard',
-            blockType: Scratch.BlockType.COMMAND,
-            text: 'copy custom block [PROCNAME] from current sprite to clipboard',
-            arguments: {
-              PROCNAME: {
-                type: Scratch.ArgumentType.STRING,
-                defaultValue: 'my block'
-              }
-            }
-          },
           {
             opcode: 'getExportedIR',
             blockType: Scratch.BlockType.REPORTER,
@@ -929,7 +705,7 @@ IR:
           {
             opcode: 'copyAllStacksToClipboard',
             blockType: Scratch.BlockType.COMMAND,
-            text: 'copy all stacks from sprite [SPRITE] to clipboard',
+            text: 'copy all stacks from sprite [SPRITE] to clipboard with rules',
             arguments: {
               SPRITE: {
                 type: Scratch.ArgumentType.STRING,
@@ -954,78 +730,6 @@ IR:
 
     getExportedIR() {
       return lastExportText;
-    }
-
-    exportCustomBlock(args) {
-      const target = getTargetByName(args.SPRITE);
-      if (!target) {
-        const result = `Sprite not found: ${args.SPRITE}`;
-        lastExportText = result;
-        showPopup(result);
-        return;
-      }
-
-      exportAndPresent(target, args.PROCNAME, { popup: true });
-    }
-
-    exportFromEditingTarget(args) {
-      const target = getEditingTarget();
-      if (!target) {
-        const result = 'No current sprite.';
-        lastExportText = result;
-        showPopup(result);
-        return;
-      }
-
-      exportAndPresent(target, args.PROCNAME, { popup: true });
-    }
-
-    async copyCustomBlockToClipboard(args) {
-      const target = getTargetByName(args.SPRITE);
-      if (!target) {
-        lastExportText = `Sprite not found: ${args.SPRITE}`;
-        return;
-      }
-
-      await exportAndPresent(target, args.PROCNAME, { copy: true, popup: false });
-    }
-
-    exportTopLevelStack(args) {
-      const target = getTargetByName(args.SPRITE);
-      if (!target) {
-        const result = `Sprite not found: ${args.SPRITE}`;
-        lastExportText = result;
-        showPopup(result);
-        return;
-      }
-
-      exportStackAndPresent(target, args.INDEX, { popup: true });
-    }
-
-    async copyTopLevelStackToClipboard(args) {
-      const target = getTargetByName(args.SPRITE);
-      if (!target) {
-        lastExportText = `Sprite not found: ${args.SPRITE}`;
-        return;
-      }
-
-      await exportStackAndPresent(target, args.INDEX, { copy: true, popup: false });
-    }
-
-    countTopLevelStacks(args) {
-      const target = getTargetByName(args.SPRITE);
-      if (!target) return 0;
-      return getTopLevelStackIds(target).length;
-    }
-
-    async copyFromEditingTargetToClipboard(args) {
-      const target = getEditingTarget();
-      if (!target) {
-        lastExportText = 'No current sprite.';
-        return;
-      }
-
-      await exportAndPresent(target, args.PROCNAME, { copy: true, popup: false });
     }
 
     async textifyClickedBlock() {
@@ -1094,10 +798,7 @@ IR:
     globalThis.__textifyTestHooks = {
       isMenuOpcode,
       getTopLevelStackIds,
-      exportProcedureText,
-      exportTopLevelStackText,
       serializeScript,
-      exportAndPresent,
       getStackRoot,
       exportAllStacksText
     };
