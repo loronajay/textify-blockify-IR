@@ -23252,9 +23252,26 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
       const body = vars.map((variable) => `<variable type="${escapeXmlAttr(variable.type)}" id="${escapeXmlAttr(variableIdFor(variable.name, variable.type))}">${escapeXmlText(variable.name)}</variable>`).join("");
       return `<variables>${body}</variables>`;
     }
+    function proccodArgTypes(proccode) {
+      const types = [];
+      const re2 = /%(s|n|b)/g;
+      let m2;
+      while ((m2 = re2.exec(proccode || "")) !== null) {
+        types.push(m2[1] === "b" ? "boolean" : "string_number");
+      }
+      return types;
+    }
     function procedureMutationXml(node) {
-      const argumentIds = defaultArgumentIds(node.argumentnames || []);
-      return `<mutation proccode="${escapeXmlAttr(node.proccode || "")}" argumentids="${escapeXmlAttr(JSON.stringify(argumentIds))}" argumentnames="${escapeXmlAttr(JSON.stringify(node.argumentnames || []))}" argumentdefaults="${escapeXmlAttr(JSON.stringify(node.argumentdefaults || []))}" warp="${node.warp ? "true" : "false"}"></mutation>`;
+      const argumentnames = node.argumentnames || [];
+      const argumentIds = defaultArgumentIds(argumentnames);
+      const argTypes = proccodArgTypes(node.proccode);
+      const mutation = `<mutation proccode="${escapeXmlAttr(node.proccode || "")}" argumentids="${escapeXmlAttr(JSON.stringify(argumentIds))}" argumentnames="${escapeXmlAttr(JSON.stringify(argumentnames))}" argumentdefaults="${escapeXmlAttr(JSON.stringify(node.argumentdefaults || []))}" warp="${node.warp ? "true" : "false"}"></mutation>`;
+      const argSlots = argumentIds.map((argId, i2) => {
+        const argName = argumentnames[i2] || "";
+        const reporterType = argTypes[i2] === "boolean" ? "argument_reporter_boolean" : "argument_reporter_string_number";
+        return `<value name="${escapeXmlAttr(argId)}"><shadow type="${reporterType}"><field name="VALUE">${escapeXmlText(argName)}</field></shadow></value>`;
+      }).join("");
+      return mutation + argSlots;
     }
     function opcodeMutationXml(node) {
       if (node.opcode === "procedures_call") {
@@ -23787,12 +23804,32 @@ ${msg}</div>`;
         const shell = this.el("div", "bfv-procedure-shell");
         shell.dataset.nodeKind = "procedure";
         const header = this.el("div", "bfv-procedure-header");
-        header.appendChild(this.el("div", "bfv-procedure-title", node.proccode));
+        this.addCategoryClass(header, "custom");
+        this.renderProcedureHeader(header, node.proccode || "", node.argumentnames || []);
         const body = this.el("div", "bfv-procedure-body");
         body.appendChild(this.renderStack(node.body));
         shell.appendChild(header);
         shell.appendChild(body);
         this.root.appendChild(shell);
+      }
+      renderProcedureHeader(container, proccode, argumentnames) {
+        const parts = proccode.split(/(%[snb])/g);
+        let argIndex = 0;
+        for (const part of parts) {
+          if (part === "%s" || part === "%n") {
+            const slot = this.el("div", "bfv-arg-slot bfv-arg-slot-round");
+            slot.appendChild(this.el("span", "bfv-label", argumentnames[argIndex] || ""));
+            container.appendChild(slot);
+            argIndex++;
+          } else if (part === "%b") {
+            const slot = this.el("div", "bfv-arg-slot bfv-arg-slot-boolean");
+            slot.appendChild(this.el("span", "bfv-label", argumentnames[argIndex] || ""));
+            container.appendChild(slot);
+            argIndex++;
+          } else if (part) {
+            container.appendChild(this.el("span", "bfv-label", part));
+          }
+        }
       }
       renderNode(node, context = null) {
         if (!node || typeof node !== "object") {
