@@ -9,8 +9,8 @@ In TurboWarp, load both extensions as **unsandboxed** custom extensions:
 1. Open TurboWarp (`turbowarp.org` or desktop app).
 2. Click the **Extensions** button (bottom-left puzzle piece).
 3. Click **Custom Extension**.
-4. Load `textify-turbowarp.js` — paste URL or upload file. Accept unsandboxed prompt.
-5. Repeat for `blockify-turbowarp.js` (or `dist/blockify-turbowarp.embedded.js` for the bundled build that includes `scratch-blocks`).
+4. Load `textify-and-blockify/textify-turbowarp.js` — paste URL or upload file. Accept unsandboxed prompt.
+5. Repeat for `textify-and-blockify/blockify-turbowarp.js` (or `textify-and-blockify/blockify-turbowarp.embedded.js` for the bundled build that includes `scratch-blocks`).
 
 **Order matters:** Textify must be loaded before Blockify if you want the shared state bridge to be initialized before Blockify reads it. In practice, loading Textify first then Blockify in the same session is sufficient.
 

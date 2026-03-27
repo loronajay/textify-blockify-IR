@@ -38,7 +38,7 @@ This repo is a two-extension pipeline for exporting, visualising, and AI-assiste
 
 ### Textify
 
-File: [textify-turbowarp.js](textify-turbowarp.js)
+File: [textify-turbowarp.js](textify-and-blockify/textify-turbowarp.js)
 
 - **`textify clicked block to clipboard`** — waits for the user to click any block in the editor; serializes from the top of the stack (whole stack always); reporters/booleans export as bare `[opcode:]` nodes; cancels on right-click, Escape, or Cancel button.
 
@@ -58,7 +58,7 @@ File: [textify-turbowarp.js](textify-turbowarp.js)
 
 ### Blockify
 
-File: [blockify-turbowarp.js](blockify-turbowarp.js)
+File: [blockify-turbowarp.js](textify-and-blockify/blockify-turbowarp.js)
 
 - parse and validate `[procedure]` roots
 - parse and validate `[script]` roots
@@ -76,7 +76,7 @@ File: [blockify-turbowarp.js](blockify-turbowarp.js)
 - parser tolerates leading `# comment` lines (e.g. the spec header emitted by Textify)
 - `sensing_of` renders correctly via scratch-blocks (`sensing_of_object_menu` shadow registered with correct `OBJECT` field name)
 
-Embedded build artifact: [dist/blockify-turbowarp.embedded.js](dist/blockify-turbowarp.embedded.js)
+Embedded build artifact: [blockify-turbowarp.embedded.js](textify-and-blockify/blockify-turbowarp.embedded.js)
 
 ## Canonical AI Mutation Samples
 

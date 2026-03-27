@@ -109,9 +109,9 @@ Before processing Textify Canon IR or Blockify IR:
 
 | File | Purpose |
 |---|---|
-| `textify-turbowarp.js` | TurboWarp extension — exports IR, prepares AI payloads |
-| `blockify-turbowarp.js` | TurboWarp extension — parses, validates, and renders IR |
-| `dist/blockify-turbowarp.embedded.js` | Blockify bundled with scratch-blocks for visual rendering |
+| `textify-and-blockify/textify-turbowarp.js` | TurboWarp extension — exports IR, prepares AI payloads |
+| `textify-and-blockify/blockify-turbowarp.js` | TurboWarp extension — parses, validates, and renders IR |
+| `textify-and-blockify/blockify-turbowarp.embedded.js` | Blockify bundled with scratch-blocks for visual rendering |
 | `IR_GRAMMAR.md` | Formal grammar spec — for AI models |
 | `IR_FULL_REFERENCE.md` | Full human reference — mutation rules, failure modes, examples |
 | `PROJECT_STATUS.md` | Implementation status and known limits |
