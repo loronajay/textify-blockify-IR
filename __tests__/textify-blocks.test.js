@@ -155,21 +155,21 @@ describe('Textify block registration', () => {
     const b = findBlock('getExportedIR');
     expect(b).toBeDefined();
     expect(b.blockType).toBe('reporter');
-    expect(b.text).toBe('exported IR');
+    expect(b.text).toBe('clipboard IR');
   });
 
   test('copyRulesWithClipboardIR is a command with correct text', () => {
     const b = findBlock('copyRulesWithClipboardIR');
     expect(b).toBeDefined();
     expect(b.blockType).toBe('command');
-    expect(b.text).toBe('copy rules with clipboard IR');
+    expect(b.text).toBe('merge rules with clipboard IR');
   });
 
   test('textifyClickedBlock is a command with correct text', () => {
     const b = findBlock('textifyClickedBlock');
     expect(b).toBeDefined();
     expect(b.blockType).toBe('command');
-    expect(b.text).toBe('textify clicked block to clipboard');
+    expect(b.text).toBe('Textify clicked block');
   });
 
   test('copyAllStacksToClipboard is a command with SPRITE argument', () => {
@@ -184,7 +184,7 @@ describe('Textify block registration', () => {
     const b = findBlock('copyAllStacksPlain');
     expect(b).toBeDefined();
     expect(b.blockType).toBe('command');
-    expect(b.text).toBe('copy all stacks from sprite [SPRITE] plain');
+    expect(b.text).toBe('copy all stacks from sprite [SPRITE] without rules');
     expect(b.arguments.SPRITE).toBeDefined();
   });
 });

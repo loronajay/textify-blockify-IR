@@ -4,7 +4,7 @@ const vm = require('vm');
 
 describe('TurboWarp Game Factory bundle', () => {
   function loadBundle() {
-    const filePath = path.resolve(__dirname, '..', 'turbowarp-game-factory.js');
+    const filePath = path.resolve(__dirname, '..', 'factory_extensions', 'turbowarp-game-factory.js');
     const source = fs.readFileSync(filePath, 'utf8');
     const registered = [];
     const Scratch = {

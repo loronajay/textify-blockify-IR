@@ -293,7 +293,7 @@ describe('Textify copyRulesWithClipboardIR', () => {
     const block = info.blocks.find(b => b.opcode === 'copyRulesWithClipboardIR');
     expect(block).toBeDefined();
     expect(block.blockType).toBe('command');
-    expect(block.text).toBe('copy rules with clipboard IR');
+    expect(block.text).toBe('merge rules with clipboard IR');
   });
 });
 
@@ -385,7 +385,7 @@ describe('Blockify loadClipboardIR', () => {
     const block = info.blocks.find(b => b.opcode === 'loadClipboardIR');
     expect(block).toBeDefined();
     expect(block.blockType).toBe('command');
-    expect(block.text).toBe('blockify clipboard contents');
+    expect(block.text).toBe('Blockify clipboard contents');
   });
 });
 
@@ -453,6 +453,6 @@ describe('Blockify clipboardIRMatchesBuffer', () => {
     const block = info.blocks.find(b => b.opcode === 'clipboardIRMatchesBuffer');
     expect(block).toBeDefined();
     expect(block.blockType).toBe('boolean');
-    expect(block.text).toBe('clipboard IR matches buffer');
+    expect(block.text).toBe('clipboard IR matches buffer?');
   });
 });
