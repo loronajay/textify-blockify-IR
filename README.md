@@ -18,7 +18,7 @@ Scratch project → [Textify] → Textify IR → [AI model] → [Blockify] → S
 
 ## Textify Canon IR
 
-Textify Canon IR is the canonical text representation of Scratch/TurboWarp block programs used by this pipeline. IR snippets exported by Textify can include a spec header pointing to the grammar document with the "copy rules..." block:
+Textify Canon IR is the canonical text representation of Scratch/TurboWarp block programs used by this pipeline. IR snippets exported by Textify can include a spec header pointing to the grammar document with the "merge rules with clipboard IR" block:
 
 ```
 # Textify Canon IR — spec: https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_GRAMMAR.md
