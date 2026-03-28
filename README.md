@@ -115,12 +115,3 @@ Before processing Textify Canon IR or Blockify IR:
 | `IR_GRAMMAR.md` | Formal grammar spec — for AI models |
 | `IR_FULL_REFERENCE.md` | Full human reference — mutation rules, failure modes, examples |
 | `PROJECT_STATUS.md` | Implementation status and known limits |
-
-## Development
-
-```bash
-npm test               # Run all tests
-npm run build:blockify # Bundle blockify with scratch-blocks
-```
-
-Tests run under Jest with no browser required. Mock Scratch environments are constructed inline.
