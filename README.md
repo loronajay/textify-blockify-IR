@@ -115,3 +115,7 @@ Before processing Textify Canon IR or Blockify IR:
 | `IR_GRAMMAR.md` | Formal grammar spec — for AI models |
 | `IR_FULL_REFERENCE.md` | Full human reference — mutation rules, failure modes, examples |
 | `PROJECT_STATUS.md` | Implementation status and known limits |
+
+## Feedback & Bug Reports
+
+If you notice unexpected behavior, have a bug to report, a possible fix, or just want to share thoughts — email **leojaylorona@gmail.com**. All feedback is welcome.
