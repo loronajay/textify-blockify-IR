@@ -181,6 +181,23 @@ Values are always double-quoted strings.
 
 ---
 
+## Parser Tolerances
+
+Blockify's parser accepts certain deviations from canonical IR and recovers silently. These are safety nets — **always produce canonical IR**. Do not rely on tolerances when writing or mutating IR.
+
+| Deviation | Example | Recovery |
+|---|---|---|
+| Unquoted string literal | `[literal:string:hello]` | Treated as `[literal:string:"hello"]` |
+| Comma between opcode properties | `id:"x", fields:{}` | Comma ignored |
+| Comma between `fields`/`inputs`/`stacks` map entries | `{A:"1", B:"2"}` | Comma ignored |
+| Trailing comma in `fields`/`inputs`/`stacks` map | `{A:"1",}` | Comma ignored |
+| Trailing comma in string array | `["a","b",]` | Comma ignored |
+| Comma between procedure properties | `proccode:"x", argumentnames:[]` | Comma ignored |
+
+Opcode name misspellings (e.g. `look_say`) are **not** recovered — the block will silently fall back in the renderer.
+
+---
+
 ## Opcode Input and Field Reference
 
 ### Motion

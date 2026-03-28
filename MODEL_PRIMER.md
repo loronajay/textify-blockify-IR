@@ -39,8 +39,8 @@ Textify Canon IR is a **machine-optimized bracket-delimited text format** for re
 2. **String literals MUST use double quotes**
    ```
    ✅ [literal:string:"hello"]
-   ❌ [literal:string:hello]
-   ❌ [literal:string:'hello']
+   ❌ [literal:string:hello]      (Blockify recovers this, but always use canonical form)
+   ❌ [literal:string:'hello']    (not recovered — single quotes are not valid)
    ```
 
 3. **Numbers are NEVER quoted**
@@ -137,11 +137,13 @@ Textify Canon IR is a **machine-optimized bracket-delimited text format** for re
 
 | Mistake | Fix |
 |---------|-----|
-| Using single quotes for strings | Use double quotes always |
+| Using single quotes for strings | Use double quotes always — `[literal:string:"x"]` |
+| Unquoted string literal | Use double quotes — `[literal:string:"hello"]` not `[literal:string:hello]` (Blockify recovers bare words, but canonical form is required) |
 | Forgetting `id:` in opcode nodes | Every opcode needs a unique `id` |
 | Using wrong input names (e.g., OPERAND1 for arithmetic) | Reference the grammar table for each opcode |
 | Putting stack nodes in `inputs` | Stacks only go in `stacks:{}` |
 | Duplicating IDs | Generate new IDs with a prefix or number |
+| Adding JSON-style commas between properties | Canonical IR has no commas between properties or map entries (Blockify recovers them, but omit for canonical output) |
 
 ## When to Fetch the Grammar
 

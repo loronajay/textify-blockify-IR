@@ -22,7 +22,8 @@ Code
 
 1. **String literals use double quotes only:**
 - ✅ `[literal:string:"hello"]`
-- ❌ `[literal:string:hello]` or `[literal:string:'hello']`
+- ❌ `[literal:string:hello]` — Blockify now recovers bare words, but always use canonical form
+- ❌ `[literal:string:'hello']` — single quotes are not recovered
 
 2. **Numbers are unquoted:**
 - ✅ `[literal:number:42]` and `[literal:number:-108]`
@@ -46,7 +47,7 @@ Code
 
 ## Common Failure Modes (Based on Testing)
 
-- **String literal quoting** — Most common issue. Models produce unquoted strings.
+- **String literal quoting** — Most common issue. Models produce unquoted strings. Blockify now recovers bare words silently, but canonical form (double-quoted) is always required.
 - **Opcode misspelling** — Abbreviations like `look_say` instead of `looks_say`.
 - **Arithmetic operator confusion** — Using `OPERAND1`/`OPERAND2` for arithmetic instead of `NUM1`/`NUM2`.
 - **Session context bleed** — When running multiple mutations, re-anchor by explicitly stating "start from here, don't change anything: (IR)"

@@ -235,6 +235,7 @@
         if (this.peek(',')) {
           this.i += 1;
           this.skipWS();
+          if (this.peek(']')) { this.i += 1; return items; } // trailing comma
           continue;
         }
         this.expect(']');
@@ -258,6 +259,8 @@
         this.expect(':');
         const value = this.parseString();
         out[key] = value;
+        this.skipWS();
+        if (this.peek(',')) this.i += 1; // optional comma separator
         this.skipWS();
         if (this.peek('}')) {
           this.i += 1;
@@ -286,6 +289,8 @@
         }
         out[key] = value;
         this.skipWS();
+        if (this.peek(',')) this.i += 1; // optional comma separator
+        this.skipWS();
         if (this.peek('}')) {
           this.i += 1;
           return out;
@@ -312,6 +317,8 @@
           throw new ValidationError(`Stack slot ${key} contains non-stack node`);
         }
         out[key] = value;
+        this.skipWS();
+        if (this.peek(',')) this.i += 1; // optional comma separator
         this.skipWS();
         if (this.peek('}')) {
           this.i += 1;
@@ -386,6 +393,8 @@
       while (true) {
         this.skipWS();
         if (this.peek(']')) break;
+        if (this.peek(',')) { this.i += 1; this.skipWS(); } // optional comma between properties
+        if (this.peek(']')) break;
         const key = this.parseIdentifier();
         this.skipWS();
         this.expect(':');
@@ -429,6 +438,8 @@
 
       while (true) {
         this.skipWS();
+        if (this.peek(']')) break;
+        if (this.peek(',')) { this.i += 1; this.skipWS(); } // optional comma between properties
         if (this.peek(']')) break;
         const key = this.parseIdentifier();
         this.skipWS();
@@ -478,6 +489,8 @@
 
       while (true) {
         this.skipWS();
+        if (this.peek(']')) break;
+        if (this.peek(',')) { this.i += 1; this.skipWS(); } // optional comma between properties
         if (this.peek(']')) break;
         const key = this.parseIdentifier();
         this.skipWS();
@@ -536,7 +549,17 @@
       if (valueType === 'number') {
         value = this.parseNumber();
       } else if (valueType === 'string') {
-        value = this.parseString();
+        this.skipWS();
+        if (this.i < this.n && this.text[this.i] !== '"') {
+          // Recover from unquoted string literal (e.g. [literal:string:hello world])
+          const start = this.i;
+          while (this.i < this.n && this.text[this.i] !== ']' && this.text[this.i] !== '\n' && this.text[this.i] !== '\r') {
+            this.i += 1;
+          }
+          value = this.text.slice(start, this.i).trimEnd();
+        } else {
+          value = this.parseString();
+        }
       } else if (valueType === 'boolean') {
         value = this.parseBool();
       } else {

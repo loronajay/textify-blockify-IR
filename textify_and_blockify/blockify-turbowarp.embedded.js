@@ -22560,6 +22560,10 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
           if (this.peek(",")) {
             this.i += 1;
             this.skipWS();
+            if (this.peek("]")) {
+              this.i += 1;
+              return items;
+            }
             continue;
           }
           this.expect("]");
@@ -22582,6 +22586,8 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
           this.expect(":");
           const value = this.parseString();
           out[key] = value;
+          this.skipWS();
+          if (this.peek(",")) this.i += 1;
           this.skipWS();
           if (this.peek("}")) {
             this.i += 1;
@@ -22609,6 +22615,8 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
           }
           out[key] = value;
           this.skipWS();
+          if (this.peek(",")) this.i += 1;
+          this.skipWS();
           if (this.peek("}")) {
             this.i += 1;
             return out;
@@ -22634,6 +22642,8 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
             throw new ValidationError(`Stack slot ${key} contains non-stack node`);
           }
           out[key] = value;
+          this.skipWS();
+          if (this.peek(",")) this.i += 1;
           this.skipWS();
           if (this.peek("}")) {
             this.i += 1;
@@ -22702,6 +22712,11 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
         while (true) {
           this.skipWS();
           if (this.peek("]")) break;
+          if (this.peek(",")) {
+            this.i += 1;
+            this.skipWS();
+          }
+          if (this.peek("]")) break;
           const key = this.parseIdentifier();
           this.skipWS();
           this.expect(":");
@@ -22740,6 +22755,11 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
         let body = null;
         while (true) {
           this.skipWS();
+          if (this.peek("]")) break;
+          if (this.peek(",")) {
+            this.i += 1;
+            this.skipWS();
+          }
           if (this.peek("]")) break;
           const key = this.parseIdentifier();
           this.skipWS();
@@ -22783,6 +22803,11 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
         let stacks = /* @__PURE__ */ Object.create(null);
         while (true) {
           this.skipWS();
+          if (this.peek("]")) break;
+          if (this.peek(",")) {
+            this.i += 1;
+            this.skipWS();
+          }
           if (this.peek("]")) break;
           const key = this.parseIdentifier();
           this.skipWS();
@@ -22835,7 +22860,16 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
         if (valueType === "number") {
           value = this.parseNumber();
         } else if (valueType === "string") {
-          value = this.parseString();
+          this.skipWS();
+          if (this.i < this.n && this.text[this.i] !== '"') {
+            const start = this.i;
+            while (this.i < this.n && this.text[this.i] !== "]" && this.text[this.i] !== "\n" && this.text[this.i] !== "\r") {
+              this.i += 1;
+            }
+            value = this.text.slice(start, this.i).trimEnd();
+          } else {
+            value = this.parseString();
+          }
         } else if (valueType === "boolean") {
           value = this.parseBool();
         } else {

@@ -334,9 +334,9 @@ Invokes a custom block. Produced by textify whenever a sprite uses a defined cus
 
 These failure modes have been observed across multiple models and are worth checking before accepting output as valid.
 
-**String literal quoting** — the most common failure. Models produce `[literal:string:hello]` instead of `[literal:string:"hello"]`. This causes a parse error. Always check that string literal values are enclosed in double quotes.
+**String literal quoting** — the most common failure. Models produce `[literal:string:hello]` instead of `[literal:string:"hello"]`. Blockify now recovers from this silently (the value is treated as a bare string), but canonical IR must always use double quotes. Always write `[literal:string:"hello"]`.
 
-**Opcode misspelling** — models occasionally abbreviate or misspell opcodes (e.g. `look_say` instead of `looks_say`). The IR will parse and validate but the block will render in fallback mode. Verify opcode names exactly.
+**Opcode misspelling** — models occasionally abbreviate or misspell opcodes (e.g. `look_say` instead of `looks_say`). The IR will parse and validate but the block will render in fallback mode. There is no recovery for misspelled opcode names — they must be exact.
 
 **Session context bleed** — when running multiple mutations in the same session, models can carry structure from an earlier mutation into a later one. To prevent this, re-state the starting IR explicitly before each new mutation request using a continuation prompt: `start from here, don't change anything: (IR)`.
 
@@ -345,6 +345,23 @@ These failure modes have been observed across multiple models and are worth chec
 **Arithmetic operator input names** — models frequently use `OPERAND1`/`OPERAND2` for `operator_add`, `operator_subtract`, `operator_multiply`, and `operator_divide`, confusing them with the comparison operators. The canonical names are `NUM1` and `NUM2`. Blockify normalizes this automatically, but the canonical names should be used when writing new IR.
 
 **Unintended structural changes** — models may add or remove blocks not mentioned in the mutation request. The mutation rules require preserving all unrelated structure, but this should be verified in Blockify after applying any AI-produced IR.
+
+---
+
+## Parser Tolerances
+
+Blockify's parser recovers silently from certain grammar deviations that models produce. These are safety nets — **always produce canonical IR**. Canonical IR exported by Textify never uses these forms.
+
+| Deviation | Canonical form | Also accepted |
+|---|---|---|
+| Unquoted string literal | `[literal:string:"hello"]` | `[literal:string:hello]` |
+| Commas between opcode properties | `id:"x" fields:{}` | `id:"x", fields:{}` |
+| Commas between map entries | `{A:"1" B:"2"}` | `{A:"1", B:"2"}` |
+| Trailing comma in map | `{A:"1"}` | `{A:"1",}` |
+| Trailing comma in string array | `["a","b"]` | `["a","b",]` |
+| Commas between procedure properties | `proccode:"x" argumentnames:[]` | `proccode:"x", argumentnames:[]` |
+
+Opcode name misspellings are not in this table because they are not recovered — a misspelled opcode name passes the parser but silently falls back in the renderer.
 
 ---
 

@@ -71,9 +71,9 @@ The formal grammar specification for Textify Canon IR is in [`IR_GRAMMAR.md`](IR
 https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_GRAMMAR.md
 ```
 
-This document defines all node types (`procedure`, `script`, `stack`, `opcode`, `literal`, `menu`), canonical input/field names for all Scratch opcodes, and the complete constraint set.
+This document defines all node types (`procedure`, `script`, `stack`, `opcode`, `literal`, `menu`), canonical input/field names for all Scratch opcodes, the complete constraint set, and the parser tolerances Blockify accepts.
 
-> If you are an AI model working with Textify IR or Blockify IR, fetch and follow the grammar specification at the URL above before producing any output.
+> If you are an AI model working with Textify IR or Blockify IR, fetch and follow the grammar specification at the URL above before producing any output. Always produce canonical IR — parser tolerances are a safety net, not a license to deviate.
 
 ## AI Mutation Workflow
 

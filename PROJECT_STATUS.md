@@ -75,6 +75,7 @@ File: [blockify-turbowarp.js](textify_and_blockify/blockify-turbowarp.js)
 - multi-root rendering: all stacks loaded into a single scratch-blocks workspace via combined XML; stacks spread horizontally at 400px intervals to prevent overlap
 - parser tolerates leading `# comment` lines (e.g. the spec header emitted by Textify)
 - `sensing_of` renders correctly via scratch-blocks (`sensing_of_object_menu` shadow registered with correct `OBJECT` field name)
+- parser tolerances: recovers silently from unquoted string literals (`[literal:string:hello]`), commas between opcode/procedure properties, commas between field/input/stacks map entries, trailing commas in maps, and trailing commas in string arrays — canonical IR is unchanged; tolerances are a safety net for AI-produced output only
 
 Embedded build artifact: [blockify-turbowarp.embedded.js](textify_and_blockify/blockify-turbowarp.embedded.js)
 
@@ -119,8 +120,8 @@ Google Gemini 3 v2 behavioral round 1 (2026-03-24): **partial** — tests 1–2 
 
 Current Jest status at this checkpoint:
 
-- `15` test suites passing
-- `177` tests passing
+- `16` test suites passing
+- `201` tests passing
 
 Coverage currently includes:
 
@@ -137,6 +138,7 @@ Coverage currently includes:
 - `copyRulesWithClipboardIR` block behavior (all cases)
 - `readClipboard` / `loadClipboardIR` / `clipboardIRMatchesBuffer` block behavior
 - clipboard preview workflow and editor layout
+- parser tolerance recovery (unquoted string literals, commas in maps and property lists, trailing commas in arrays)
 
 ## Next Likely Steps
 
