@@ -1,20 +1,20 @@
- url=https://github.com/loronajay/turbowarp-extensions-canon/blob/main/claude.txt
-# turbowarp-extensions-canon — Claude-Specific Discovery
+ url=https://github.com/loronajay/textify-blockify-IR/blob/main/claude.txt
+# textify-blockify-IR — Claude-Specific Discovery
 
 > Textify Canon IR is a deterministic intermediate representation for Scratch/TurboWarp block programs designed for reliable AI-assisted code mutation.
 
 ## Quick Start for Claude
-https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md
+https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_GRAMMAR.md
 
 Code
 
 2. **Review the AI Model Primer:**
-https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/MODEL_PRIMER.md
+https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/MODEL_PRIMER.md
 
 Code
 
 3. **Reference the Full Mutation Guide:**
-https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_FULL_REFERENCE.md
+https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_FULL_REFERENCE.md
 
 Code
 
@@ -30,7 +30,7 @@ Code
 - ❌ `[literal:number:"42"]`
 
 3. **All opcodes must match exactly** — typos break rendering:
-- ✅ `looks_say` 
+- ✅ `looks_say`
 - ❌ `look_say` (missing 's')
 
 4. **Arithmetic operators use NUM1/NUM2, not OPERAND1/OPERAND2:**
@@ -62,11 +62,11 @@ Code
 
 ## Resources
 
-- **Grammar Spec:** https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md
-- **Model Primer:** https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/MODEL_PRIMER.md
-- **Full Reference:** https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_FULL_REFERENCE.md
-- **Project Status:** https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/PROJECT_STATUS.md
-- **Repository:** https://github.com/loronajay/turbowarp-extensions-canon
+- **Grammar Spec:** https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_GRAMMAR.md
+- **Model Primer:** https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/MODEL_PRIMER.md
+- **Full Reference:** https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_FULL_REFERENCE.md
+- **Project Status:** https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/PROJECT_STATUS.md
+- **Repository:** https://github.com/loronajay/textify-blockify-IR
 
 ---
 

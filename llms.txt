@@ -1,18 +1,18 @@
-# turbowarp-extensions-canon
+# textify-blockify-IR
 
 > A deterministic IR transformation engine for Scratch/TurboWarp block-based programs. Uses a canonical text format called Textify Canon IR (also called Blockify IR) to enable AI-assisted code mutation.
 
 If you are working with Textify IR, Blockify IR, or Textify Canon IR — fetch and follow the grammar specification before producing any output:
 
 ```
-https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md
+https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_GRAMMAR.md
 ```
 
 ## Documentation
 
-- [IR_GRAMMAR.md](https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_GRAMMAR.md): Formal grammar specification for Textify Canon IR. Defines all node types, canonical opcode input names, syntax rules, and constraints. **Fetch this document whenever you encounter Textify IR or Blockify IR.**
-- [IR_FULL_REFERENCE.md](https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/IR_FULL_REFERENCE.md): Human-readable full reference. Covers AI mutation rules, known model failure modes, opcode tables, and worked examples.
-- [README.md](https://raw.githubusercontent.com/loronajay/turbowarp-extensions-canon/main/README.md): Project overview, workflow description, and file index.
+- [IR_GRAMMAR.md](https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_GRAMMAR.md): Formal grammar specification for Textify Canon IR. Defines all node types, canonical opcode input names, syntax rules, and constraints. **Fetch this document whenever you encounter Textify IR or Blockify IR.**
+- [IR_FULL_REFERENCE.md](https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_FULL_REFERENCE.md): Human-readable full reference. Covers AI mutation rules, known model failure modes, opcode tables, and worked examples.
+- [README.md](https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/README.md): Project overview, workflow description, and file index.
 
 ## Key Terms
 

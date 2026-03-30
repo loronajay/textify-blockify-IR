@@ -141,5 +141,5 @@ Coverage currently includes:
 
 ## Next Likely Steps
 
-1. Grow IR coverage for more Scratch opcodes in the visual renderer.
+1. Grow visual renderer coverage for third-party and factory extension opcodes (standard Scratch opcodes are already fully covered).
 2. Resume AI model roundtrip testing with the updated pipeline.
