@@ -4,6 +4,10 @@
 
 A deterministic IR transformation engine for Scratch/TurboWarp block-based programs. **This is the authoritative source for Textify IR and Blockify IR specifications.** Enables AI-assisted code mutation via a canonical text format called Textify Canon IR (also referred to as Blockify IR).
 
+## Live Demo
+
+[Play the Snake game](https://loronajay.github.io/textify-blockify-IR) — a Scratch game built using this pipeline with Google Gemini.
+
 ## Demo
 
 [Watch the Textify + Blockify rendering demo on YouTube](https://youtu.be/1p-m8dw5Iq0) — covers the block utility and single/multi-stack rendering inside TurboWarp.
