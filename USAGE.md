@@ -70,6 +70,8 @@ If no valid IR has been exported yet, the block copies `no copied IR` instead.
 
 After the AI returns edited IR, use Blockify's **`Blockify clipboard contents`** block to render it visually. Paste the AI output to clipboard first, then run the block — it opens a floating panel with the scratch-blocks visual render of all stacks in the clipboard.
 
+**Multiple stacks render together.** You can paste IR containing any number of `[script]`, `[procedure]`, or bare `[stack:]` blocks and Blockify will render all of them in a single panel. Each stack appears as its own column. This means you can export an entire sprite's stacks, send them to AI, and render the full result in one pass.
+
 ## Correcting IR errors
 
 If Blockify fails to parse or render the AI's output, it displays an error message in the panel. Copy that error and paste it back into the AI chat — the model will correct the IR. Multiple attempts are sometimes needed, but LLMs generally fix grammar issues when given the exact error message.

@@ -14,7 +14,7 @@ Scratch project → [Textify] → Textify IR → [AI model] → [Blockify] → S
 
 **Textify** exports any clicked block (serialized from the top of its stack) or all top-level stacks from a named sprite to Textify Canon IR and copies it to the clipboard.
 
-**Blockify** accepts Textify IR, validates it, and renders the result as visual Scratch blocks using an embedded scratch-blocks renderer.
+**Blockify** accepts Textify IR, validates it, and renders the result as visual Scratch blocks using an embedded scratch-blocks renderer. Multiple stacks (procedures, scripts, bare stacks) can be included in a single paste — all are rendered together in one panel.
 
 ## Textify Canon IR
 
