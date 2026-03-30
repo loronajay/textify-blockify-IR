@@ -23513,6 +23513,39 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
         scratchBlocks.__blockifyPreviewInitialized = true;
       }
     }
+    function repositionMultipleStacks(workspace, topBlocks, gap) {
+      if (!workspace || !topBlocks || topBlocks.length <= 1) return;
+      gap = gap === void 0 || gap === null ? 60 : gap;
+      const sorted = topBlocks.slice().sort(function(a2, b2) {
+        try {
+          const pa = typeof a2.getRelativeToSurfaceXY === "function" ? a2.getRelativeToSurfaceXY() : { x: 0 };
+          const pb = typeof b2.getRelativeToSurfaceXY === "function" ? b2.getRelativeToSurfaceXY() : { x: 0 };
+          return pa.x - pb.x;
+        } catch (e3) {
+          return 0;
+        }
+      });
+      let xCursor = 20;
+      for (const block of sorted) {
+        if (typeof block.moveTo !== "function") continue;
+        try {
+          block.moveTo(xCursor, 20);
+          let blockWidth = 200;
+          if (typeof block.getBoundingRectangle === "function") {
+            const rect = block.getBoundingRectangle();
+            if (rect && rect.topLeft && rect.bottomRight) {
+              blockWidth = Math.max(100, rect.bottomRight.x - rect.topLeft.x);
+            }
+          }
+          xCursor += blockWidth + gap;
+        } catch (e3) {
+        }
+      }
+      try {
+        if (typeof workspace.resizeContents === "function") workspace.resizeContents();
+      } catch (e3) {
+      }
+    }
     function runEmbeddedWorkspaceLayoutPass(workspace, scratchBlocks, topBlocks) {
       if (workspace && typeof workspace.render === "function") {
         workspace.render();
@@ -23760,8 +23793,12 @@ def ${E4.FUNCTION_NAME_PLACEHOLDER_}(text):
           topBlocks = workspace.getTopBlocks(false) || [];
         }
         runEmbeddedWorkspaceLayoutPass(workspace, scratchBlocks, topBlocks);
+        repositionMultipleStacks(workspace, topBlocks);
         if (typeof requestAnimationFrame === "function") {
-          requestAnimationFrame(() => runEmbeddedWorkspaceLayoutPass(workspace, scratchBlocks, topBlocks));
+          requestAnimationFrame(() => {
+            runEmbeddedWorkspaceLayoutPass(workspace, scratchBlocks, topBlocks);
+            repositionMultipleStacks(workspace, topBlocks);
+          });
         }
         const cssDiagnostics = getBlocklyStyleDiagnostics(document);
         if (root.dataset) {

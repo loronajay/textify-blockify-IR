@@ -1314,6 +1314,39 @@
     }
   }
 
+  function repositionMultipleStacks(workspace, topBlocks, gap) {
+    if (!workspace || !topBlocks || topBlocks.length <= 1) return;
+    gap = (gap === undefined || gap === null) ? 60 : gap;
+
+    const sorted = topBlocks.slice().sort(function (a, b) {
+      try {
+        const pa = typeof a.getRelativeToSurfaceXY === 'function' ? a.getRelativeToSurfaceXY() : { x: 0 };
+        const pb = typeof b.getRelativeToSurfaceXY === 'function' ? b.getRelativeToSurfaceXY() : { x: 0 };
+        return pa.x - pb.x;
+      } catch (e) { return 0; }
+    });
+
+    let xCursor = 20;
+    for (const block of sorted) {
+      if (typeof block.moveTo !== 'function') continue;
+      try {
+        block.moveTo(xCursor, 20);
+        let blockWidth = 200;
+        if (typeof block.getBoundingRectangle === 'function') {
+          const rect = block.getBoundingRectangle();
+          if (rect && rect.topLeft && rect.bottomRight) {
+            blockWidth = Math.max(100, rect.bottomRight.x - rect.topLeft.x);
+          }
+        }
+        xCursor += blockWidth + gap;
+      } catch (e) { /* skip unmovable blocks */ }
+    }
+
+    try {
+      if (typeof workspace.resizeContents === 'function') workspace.resizeContents();
+    } catch (e) { /* skip */ }
+  }
+
   function runEmbeddedWorkspaceLayoutPass(workspace, scratchBlocks, topBlocks) {
     if (workspace && typeof workspace.render === 'function') {
       workspace.render();
@@ -1622,8 +1655,12 @@
         topBlocks = workspace.getTopBlocks(false) || [];
       }
       runEmbeddedWorkspaceLayoutPass(workspace, scratchBlocks, topBlocks);
+      repositionMultipleStacks(workspace, topBlocks);
       if (typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(() => runEmbeddedWorkspaceLayoutPass(workspace, scratchBlocks, topBlocks));
+        requestAnimationFrame(() => {
+          runEmbeddedWorkspaceLayoutPass(workspace, scratchBlocks, topBlocks);
+          repositionMultipleStacks(workspace, topBlocks);
+        });
       }
 
       const cssDiagnostics = getBlocklyStyleDiagnostics(document);
