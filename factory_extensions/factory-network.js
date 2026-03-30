@@ -6,6 +6,8 @@
     }
 
     const SERVER_URL = "wss://factory-network-server-production.up.railway.app";
+    const PING_INTERVAL = 5000;   // send ping every 5s
+    const PONG_TIMEOUT  = 15000;  // disconnect if no pong for 15s
 
     function slugify(name) {
         return name
@@ -27,33 +29,44 @@
 
     let socket = null;
     let connectionToken = 0;
+    let _heartbeatInterval = null;
+    let _lastPong = 0;
+
     let _status = 'disconnected'; // 'disconnected' | 'connecting' | 'connected' | 'error'
     let _lastError = '';
     let _searching = false;
     let _connected = false;
     let _clientId = '';
     let _roomId = '';
-    let _lastMsgType = '';
-    let _lastMsgValue = '';
-    let _lastMsgSender = '';
+
+    // Message queue — incoming messages are buffered so none are lost
+    // between Scratch VM polls regardless of how fast they arrive.
+    let _msgQueue = [];                                     // pending messages
+    let _currentMsg = { type: '', value: '', sender: '' }; // last dequeued
+
     let _lastJoined = '';
     let _lastLeft = '';
-    let _messageFlag = false;
     let _joinedFlag = false;
     let _leftFlag = false;
 
+    function clearHeartbeat() {
+        if (_heartbeatInterval) {
+            clearInterval(_heartbeatInterval);
+            _heartbeatInterval = null;
+        }
+    }
+
     function resetState(preserveError) {
+        clearHeartbeat();
         _status = preserveError ? 'error' : 'disconnected';
+        _searching = false;
         _connected = false;
         _clientId = '';
         _roomId = '';
-        _lastMsgType = '';
-        _lastMsgValue = '';
-        _lastMsgSender = '';
+        _msgQueue = [];
+        _currentMsg = { type: '', value: '', sender: '' };
         _lastJoined = '';
         _lastLeft = '';
-        _searching = false;
-        _messageFlag = false;
         _joinedFlag = false;
         _leftFlag = false;
     }
@@ -88,10 +101,14 @@
                 _leftFlag = true;
                 break;
             case 'message':
-                _lastMsgType = String(msg.messageType || '');
-                _lastMsgValue = String(msg.value || '');
-                _lastMsgSender = String(msg.senderId || '');
-                _messageFlag = true;
+                _msgQueue.push({
+                    type:   String(msg.messageType || ''),
+                    value:  String(msg.value || ''),
+                    sender: String(msg.senderId || '')
+                });
+                break;
+            case 'pong':
+                _lastPong = Date.now();
                 break;
             case 'error':
                 break;
@@ -162,11 +179,6 @@
                         text: "find a match"
                     },
                     {
-                        opcode: "gameId",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "game id"
-                    },
-                    {
                         opcode: "cancelMatch",
                         blockType: Scratch.BlockType.COMMAND,
                         text: "cancel match search"
@@ -185,6 +197,11 @@
                         opcode: "myRoom",
                         blockType: Scratch.BlockType.REPORTER,
                         text: "my room"
+                    },
+                    {
+                        opcode: "gameId",
+                        blockType: Scratch.BlockType.REPORTER,
+                        text: "game id"
                     },
 
                     // --- Messaging ---
@@ -253,6 +270,11 @@
                         opcode: "lastLeftPlayer",
                         blockType: Scratch.BlockType.REPORTER,
                         text: "last player who left"
+                    },
+                    {
+                        opcode: "messagesWaiting",
+                        blockType: Scratch.BlockType.REPORTER,
+                        text: "messages waiting"
                     }
                 ]
             };
@@ -262,6 +284,7 @@
             if (socket) return;
             const token = ++connectionToken;
             _status = 'connecting';
+            _lastPong = Date.now();
             socket = new WebSocket(SERVER_URL);
             socket.onmessage = (event) => {
                 if (connectionToken !== token) return;
@@ -281,9 +304,30 @@
                 _lastError = `failed to connect to ${SERVER_URL}`;
                 _status = 'error';
             };
+
+            // Heartbeat — ping every PING_INTERVAL, disconnect if pong
+            // doesn't arrive within PONG_TIMEOUT.
+            _heartbeatInterval = setInterval(() => {
+                if (connectionToken !== token) {
+                    clearInterval(_heartbeatInterval);
+                    return;
+                }
+                if (Date.now() - _lastPong > PONG_TIMEOUT) {
+                    clearInterval(_heartbeatInterval);
+                    _lastError = 'connection timed out';
+                    connectionToken++;
+                    if (socket) { socket.close(); socket = null; }
+                    resetState(true);
+                    return;
+                }
+                if (socket && socket.readyState === 1) {
+                    socket.send(JSON.stringify({ type: 'ping' }));
+                }
+            }, PING_INTERVAL);
         }
 
         disconnect() {
+            clearHeartbeat();
             connectionToken++;
             if (socket) {
                 socket.close();
@@ -328,10 +372,6 @@
             socket.send(JSON.stringify({ type: 'find_match', gameId: getProjectSlug() }));
         }
 
-        gameId() {
-            return getProjectSlug();
-        }
-
         cancelMatch() {
             if (!_connected || !socket) return;
             socket.send(JSON.stringify({ type: 'cancel_match' }));
@@ -349,6 +389,10 @@
             return _roomId;
         }
 
+        gameId() {
+            return getProjectSlug();
+        }
+
         sendRoomMessage({ TYPE, VALUE }) {
             if (!_connected || !socket || _roomId === '') return;
             socket.send(JSON.stringify({ type: 'room_message', messageType: TYPE, value: VALUE }));
@@ -359,10 +403,13 @@
             socket.send(JSON.stringify({ type: 'direct_message', targetId: TARGET, messageType: TYPE, value: VALUE }));
         }
 
+        // Drains one message from the queue per poll. If multiple messages
+        // arrived between polls, the hat fires again next poll for the next
+        // one — nothing is skipped.
         whenMessageReceived() {
-            const v = _messageFlag;
-            _messageFlag = false;
-            return v;
+            if (_msgQueue.length === 0) return false;
+            _currentMsg = _msgQueue.shift();
+            return true;
         }
 
         whenPlayerJoined() {
@@ -378,15 +425,15 @@
         }
 
         lastMessageType() {
-            return _lastMsgType;
+            return _currentMsg.type;
         }
 
         lastMessageValue() {
-            return _lastMsgValue;
+            return _currentMsg.value;
         }
 
         lastMessageSender() {
-            return _lastMsgSender;
+            return _currentMsg.sender;
         }
 
         lastJoinedPlayer() {
@@ -395,6 +442,10 @@
 
         lastLeftPlayer() {
             return _lastLeft;
+        }
+
+        messagesWaiting() {
+            return _msgQueue.length;
         }
     }
 
