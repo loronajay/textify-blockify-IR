@@ -24820,18 +24820,8 @@ ${message}</div>`;
         refreshStatus();
         sourcePane.textarea.focus();
       });
-      const validateBtn = makeBtn("Validate IR", () => {
-        owner.setBufferText(sourcePane.textarea.value);
-        owner.validateIR({ IR: owner.irBuffer });
-        refreshStatus();
-      });
-      const renderBtn = makeBtn("Render IR", () => {
-        owner.setBufferText(sourcePane.textarea.value);
-        owner.renderIR({ IR: owner.irBuffer });
-        refreshStatus();
-      });
       const closeBtn = makeBtn("Close", () => overlay.remove());
-      row.append(applyBtn, copyBtn, clearBtn, validateBtn, renderBtn, closeBtn);
+      row.append(applyBtn, copyBtn, clearBtn, closeBtn);
       const visual = document.createElement("div");
       visual.style.cssText = [
         "min-height:120px",
@@ -24876,11 +24866,6 @@ ${message}</div>`;
               opcode: "loadClipboardIR",
               blockType: Scratch2.BlockType.COMMAND,
               text: "Blockify clipboard contents"
-            },
-            {
-              opcode: "clipboardIRMatchesBuffer",
-              blockType: Scratch2.BlockType.BOOLEAN,
-              text: "clipboard IR matches buffer?"
             },
             {
               opcode: "readClipboard",
@@ -24972,13 +24957,6 @@ ${message}</div>`;
           return;
         }
         showClipboardPreview(this, text);
-      }
-      async clipboardIRMatchesBuffer() {
-        const text = (await readClipboardText()).trim();
-        if (!text) return false;
-        const matches = text === (this.irBuffer || "").trim();
-        showIRPreviewOnly(this, text, matches ? "matches buffer \u2713" : "MISMATCH \u2717");
-        return matches;
       }
       async readClipboard() {
         return readClipboardText();
