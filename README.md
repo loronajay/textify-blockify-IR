@@ -18,7 +18,7 @@ Scratch project → [Textify] → Textify IR → [AI model] → [Blockify] → S
 
 ## Textify Canon IR
 
-Textify Canon IR is the canonical text representation of Scratch/TurboWarp block programs used by this pipeline. IR snippets exported by Textify can include a spec header pointing to the grammar document with the "merge rules with clipboard IR" block:
+Textify Canon IR is the canonical text representation of Scratch/TurboWarp block programs used by this pipeline. IR snippets exported by Textify can include a spec header pointing to the grammar document. The `copy all stacks with rules` export block and the `merge rules with clipboard IR` block both prepend this header:
 
 ```
 # Textify Canon IR — spec: https://raw.githubusercontent.com/loronajay/textify-blockify-IR/main/IR_GRAMMAR.md
@@ -82,11 +82,10 @@ You don't need existing blocks to use the AI workflow. In TurboWarp, place a gre
 ## AI Mutation Workflow
 
 1. In Scratch/TurboWarp, use one of Textify's export blocks:
-   - **`textify clicked block to clipboard`** — click any block in the editor to export its whole stack as IR
-   - **`copy all stacks from sprite [SPRITE] to clipboard with rules`** — exports every top-level stack from a sprite, with spec header
-   - **`copy all stacks from sprite [SPRITE] without rules`** — same, without spec header
-2. Optionally use Textify's **`merge rules with clipboard IR`** command — reads IR from clipboard, prepends the full mutation rules and grammar URL, writes back to clipboard
-3. Paste into an AI model (Gemini, ChatGPT, Claude, etc.)
+   - **`copy all stacks from sprite [SPRITE] to clipboard with rules`** — exports every top-level stack from a sprite with mutation rules prepended; paste directly into your AI chat
+   - **`textify clicked block to clipboard`** — click any block to export its whole stack as IR (no rules); follow with `merge rules with clipboard IR` before pasting
+   - **`copy all stacks from sprite [SPRITE] without rules`** — same as above, no rules; follow with `merge rules with clipboard IR` before pasting
+2. Paste into an AI model (Gemini, ChatGPT, Claude, etc.)
 4. The model fetches `IR_GRAMMAR.md`, echoes the IR back, then waits for your mutation request
 5. Paste the model's output back into Blockify's Source IR pane to preview and validate
 6. If Blockify shows a parse or render error, copy the error message and paste it back into the AI chat — the model will correct the IR. Multiple attempts are sometimes needed, but LLMs generally self-correct when given the exact error message.

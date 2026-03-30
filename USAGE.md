@@ -37,23 +37,17 @@ Procedure definition blocks are excluded from both. All exported IR is stored in
 
 ## Sending IR to an AI model
 
-After exporting, use Textify's **`merge rules with clipboard IR`** block:
+**`copy all stacks with rules`** already includes the mutation rules — paste directly into your AI chat. No extra step needed.
+
+**`textify clicked block`** and **`copy all stacks without rules`** do not include rules. Follow them with **`merge rules with clipboard IR`** before pasting:
 
 ```
 when [key] pressed
   textify clicked block to clipboard                    ← Textify (click a block)
-  merge rules with clipboard IR                          ← Textify
+  merge rules with clipboard IR                          ← Textify (prepends rules)
 ```
 
-Or for a sprite-wide export:
-
-```
-when [key] pressed
-  copy all stacks from sprite [Sprite1] to clipboard with rules   ← Textify
-  merge rules with clipboard IR                                     ← Textify
-```
-
-This copies a merged payload to clipboard:
+`merge rules` produces a merged payload:
 
 ```
 You are modifying Textify canon IR.
