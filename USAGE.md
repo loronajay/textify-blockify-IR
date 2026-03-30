@@ -22,7 +22,7 @@ In TurboWarp, load both extensions as **unsandboxed** custom extensions:
 
 ### Click-to-export any block
 
-Use **`textify clicked block to clipboard`** in a script. When it runs, it waits for you to click any block in the editor. The whole stack is serialized from the top (so clicking a block in the middle of a script still exports the complete script). Reporters and boolean blocks clicked directly export as a bare `[opcode:]` node. The result is copied to clipboard with the spec header and stored in `__TEXTIFY_SHARED__`.
+Use **`Textify clicked block`** in a script. When it runs, it waits for you to click any block in the editor. The whole stack is serialized from the top (so clicking a block in the middle of a script still exports the complete script). Reporters and boolean blocks clicked directly export as a bare `[opcode:]` node. The result is copied to clipboard as raw IR and stored in `__TEXTIFY_SHARED__`.
 
 Cancel the click by right-clicking, pressing Escape, or clicking the Cancel button that appears.
 
@@ -36,11 +36,11 @@ Procedure definition blocks are excluded from both. All exported IR is stored in
 
 ## Sending IR to an AI model
 
-**`textify clicked block`** and **`copy all stacks without rules`** do not include rules. Follow them with **`merge rules with clipboard IR`** before pasting:
+**`Textify clicked block`** and **`copy all stacks without rules`** do not include rules. Follow them with **`merge rules with clipboard IR`** before pasting:
 
 ```
 when [key] pressed
-  textify clicked block to clipboard                    ← Textify (click a block)
+  Textify clicked block                                 ← Textify (click a block)
   merge rules with clipboard IR                          ← Textify (prepends rules)
 ```
 
@@ -84,7 +84,7 @@ Rules only need to be sent once at the start of an AI session. Use `merge rules 
 
 ```
 when [r] pressed                         ← export IR (no rules needed after first prompt)
-  textify clicked block to clipboard
+  Textify clicked block
 
 when [t] pressed                         ← render AI output visually
   Blockify clipboard contents

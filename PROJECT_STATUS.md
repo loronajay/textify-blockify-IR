@@ -23,12 +23,12 @@ The repository has been optimized for Large Language Model (LLM) discovery and i
 
 This repo is a two-extension pipeline for exporting, visualising, and AI-assisted editing of Scratch/TurboWarp block programs via a canonical text IR.
 
-- `Textify` — click-to-export or sprite-wide export of any top-level stack to `[script]` IR; clipboard copy with optional spec header and AI rules prepended
+- `Textify` — click-to-export or sprite-wide export of any top-level stack to `[script]` IR; raw IR copied to clipboard; `merge rules with clipboard IR` block prepends AI rules
 - `Blockify` — parse, validate, and visually render `[procedure]`, `[script]`, `[stack:]`, and bare `[opcode:]` IR; multi-stack clipboard rendering
 
 ## Canonical Workflow
 
-1. Use Textify's **`textify clicked block to clipboard`** block — click any block in the editor to export its whole stack as IR.
+1. Use Textify's **`Textify clicked block`** block — click any block in the editor to export its whole stack as IR.
 2. Optionally use Textify's **`merge rules with clipboard IR`** block — reads IR from clipboard, prepends the canonical AI mutation rules and grammar URL, copies back.
 3. Paste into an AI model.
 4. The model fetches `IR_GRAMMAR.md`, echoes the IR, then performs the requested mutation.
@@ -40,7 +40,7 @@ This repo is a two-extension pipeline for exporting, visualising, and AI-assiste
 
 File: [textify-turbowarp.js](textify_and_blockify/textify-turbowarp.js)
 
-- **`textify clicked block to clipboard`** — waits for the user to click any block in the editor; serializes from the top of the stack (whole stack always); reporters/booleans export as bare `[opcode:]` nodes; cancels on right-click, Escape, or Cancel button.
+- **`Textify clicked block`** — waits for the user to click any block in the editor; serializes from the top of the stack (whole stack always); reporters/booleans export as bare `[opcode:]` nodes; cancels on right-click, Escape, or Cancel button.
 
 `single blocks/variables`: click any single block to retrieve its IR.
 
@@ -72,7 +72,7 @@ File: [blockify-turbowarp.js](textify_and_blockify/blockify-turbowarp.js)
 - **`clipboard contents`** reporter block: reads the clipboard and returns its text
 - `Parser.parseAll()` — parses multiple root nodes from one IR string (enables multi-stack clipboard rendering)
 - multi-root rendering: all stacks loaded into a single scratch-blocks workspace via combined XML; stacks spread horizontally at 400px intervals to prevent overlap
-- parser tolerates leading `# comment` lines (e.g. the spec header emitted by Textify)
+- parser tolerates leading `# comment` lines (stripped before parsing)
 - `sensing_of` renders correctly via scratch-blocks (`sensing_of_object_menu` shadow registered with correct `OBJECT` field name)
 - parser tolerances: recovers silently from unquoted string literals (`[literal:string:hello]`), commas between opcode/procedure properties, commas between field/input/stacks map entries, trailing commas in maps, and trailing commas in string arrays — canonical IR is unchanged; tolerances are a safety net for AI-produced output only
 
@@ -98,7 +98,7 @@ A structured test ledger with 8 tests across two base IRs is available in `AI_MO
 
 **AI mutation rules update (2026-03-25):** `AI_MUTATION_RULES` was changed from an inline bullet-point list to a prompt instructing the model to fetch and follow `IR_GRAMMAR.md` from GitHub before responding. V1 and V2 ledger results used the old inline rules. V3 results use the new URL-based rules. Do not compare results across ledger versions.
 
-**Pipeline update (2026-03-25):** `AI_MUTATION_RULES` and the `merge rules with clipboard IR` block moved from Blockify to Textify. `IR_GRAMMAR.md` was replaced with a machine-optimized formal grammar spec; the previous content moved to `IR_FULL_REFERENCE.md`. Textify clipboard exports now include a `# Textify Canon IR — spec:` header line. Blockify parser now tolerates and strips those header lines. Blockify now accepts bare `[stack:]` and `[opcode:]` roots.
+**Pipeline update (2026-03-25):** `AI_MUTATION_RULES` and the `merge rules with clipboard IR` block moved from Blockify to Textify. `IR_GRAMMAR.md` was replaced with a machine-optimized formal grammar spec; the previous content moved to `IR_FULL_REFERENCE.md`. Blockify parser tolerates and strips leading `# comment` lines. Blockify now accepts bare `[stack:]` and `[opcode:]` roots.
 
 Google Gemini (current) round 2 (2026-03-24): **8/8 pass** across parse, validate, and structural correctness using the embedded renderer. Session context bleed observed on tests 4 and 5 — resolved by re-anchoring to the starting IR before each mutation request.
 
@@ -119,8 +119,8 @@ Google Gemini 3 v2 behavioral round 1 (2026-03-24): **partial** — tests 1–2 
 
 Current Jest status at this checkpoint:
 
-- `16` test suites passing
-- `201` tests passing
+- `17` test suites passing
+- `260` tests passing
 
 Coverage currently includes:
 
@@ -135,7 +135,7 @@ Coverage currently includes:
 - `textifyClickedBlock` (graceful no-op when ScratchBlocks unavailable)
 - Textify/Blockify shared state bridge (`__TEXTIFY_SHARED__`)
 - `copyRulesWithClipboardIR` block behavior (all cases)
-- `readClipboard` / `loadClipboardIR` / `clipboardIRMatchesBuffer` block behavior
+- `readClipboard` / `loadClipboardIR` block behavior
 - clipboard preview workflow and editor layout
 - parser tolerance recovery (unquoted string literals, commas in maps and property lists, trailing commas in arrays)
 

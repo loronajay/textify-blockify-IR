@@ -30,7 +30,7 @@ These rules apply to every mutation task. Follow them exactly.
 
 A document is one or more root nodes. The root must be `[procedure]`, `[script]`, `[stack:]`, or a bare `[opcode:...]`. Blockify accepts multiple roots in one clipboard payload and renders each stack.
 
-Bare `[stack:]` and `[opcode:...]` roots are accepted by Blockify as a convenience for AI-produced fragments. They are wrapped into a synthetic `[script]` internally before validation and rendering. Textify always produces `[procedure]` or `[script]` roots.
+Bare `[stack:]` and `[opcode:...]` roots are accepted by Blockify as a convenience for AI-produced fragments. They are wrapped into a synthetic `[script]` internally before validation and rendering. Textify produces `[procedure]` or `[script]` roots for stack blocks; clicking a reporter or boolean expression directly produces a bare `[opcode:]`, `[literal:]`, or `[menu:]` node.
 
 #### `[procedure]`
 
