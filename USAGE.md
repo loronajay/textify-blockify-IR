@@ -100,7 +100,7 @@ Blockify renders blocks visually using an embedded scratch-blocks renderer. Cove
 | Blockify and Textify extension blocks | Full visual (scratch-blocks) |
 | Any other third-party extension blocks | HTML fallback renderer |
 
-The HTML fallback renderer still shows correct block shapes and structure — it just uses styled HTML elements instead of scratch-blocks visuals. If you're working in a project that uses other TurboWarp extensions (factory extensions, etc.) and export those stacks, those blocks will appear in fallback style while the rest of the stack renders normally.
+The HTML fallback renderer still shows correct block shapes and structure — it just uses styled HTML elements instead of scratch-blocks visuals. If you're working in a project that uses other TurboWarp extensions (factory extensions, etc.) and export those stacks, the entire stack will render in fallback style — even if it contains standard Scratch blocks.
 
 ## Utility blocks
 
