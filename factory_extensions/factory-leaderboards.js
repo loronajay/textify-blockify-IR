@@ -7,6 +7,9 @@
 
     const boards = {};
 
+    const NAME_ENTRY_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
+    const NAME_ENTRY_MAX_LENGTH = 7;
+
     function ensureBoard(name) {
         if (!boards[name]) {
             boards[name] = {
@@ -41,6 +44,8 @@
     class FactoryLeaderboards {
         constructor() {
             this._syncStatus = "idle";
+            this._nameEntryChars = [];
+            this._nameEntryCursor = 0;
         }
 
         getInfo() {
@@ -195,6 +200,50 @@
                         }
                     },
 
+                    // Name Entry
+                    {
+                        opcode: "startNameEntry",
+                        blockType: Scratch.BlockType.COMMAND,
+                        text: "start name entry length [LENGTH]",
+                        arguments: {
+                            LENGTH: { type: Scratch.ArgumentType.NUMBER, defaultValue: 3 }
+                        }
+                    },
+                    {
+                        opcode: "nameEntryMoveCursor",
+                        blockType: Scratch.BlockType.COMMAND,
+                        text: "name entry move cursor [DIRECTION]",
+                        arguments: {
+                            DIRECTION: { type: Scratch.ArgumentType.STRING, menu: "cursorDirection" }
+                        }
+                    },
+                    {
+                        opcode: "nameEntryScrollLetter",
+                        blockType: Scratch.BlockType.COMMAND,
+                        text: "name entry scroll letter [DIRECTION]",
+                        arguments: {
+                            DIRECTION: { type: Scratch.ArgumentType.STRING, menu: "scrollDirection" }
+                        }
+                    },
+                    {
+                        opcode: "nameEntryCursor",
+                        blockType: Scratch.BlockType.REPORTER,
+                        text: "name entry cursor"
+                    },
+                    {
+                        opcode: "nameEntryLetterAt",
+                        blockType: Scratch.BlockType.REPORTER,
+                        text: "name entry letter at [POS]",
+                        arguments: {
+                            POS: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 }
+                        }
+                    },
+                    {
+                        opcode: "nameEntryCurrentName",
+                        blockType: Scratch.BlockType.REPORTER,
+                        text: "name entry current name"
+                    },
+
                     // Cloud Sync
                     {
                         opcode: "cloudAvailable",
@@ -226,6 +275,20 @@
                     }
                 ],
                 menus: {
+                    cursorDirection: {
+                        acceptReporters: true,
+                        items: [
+                            { text: "left", value: "left" },
+                            { text: "right", value: "right" }
+                        ]
+                    },
+                    scrollDirection: {
+                        acceptReporters: true,
+                        items: [
+                            { text: "up", value: "up" },
+                            { text: "down", value: "down" }
+                        ]
+                    },
                     sortMode: {
                         acceptReporters: true,
                         items: [
@@ -341,6 +404,50 @@
         hasEntries({ NAME }) {
             const board = getBoard(NAME);
             return !!(board && board.entries.length > 0);
+        }
+
+        startNameEntry({ LENGTH }) {
+            const raw = Math.floor(Number(LENGTH));
+            const len = Math.min(NAME_ENTRY_MAX_LENGTH, Math.max(1, isNaN(raw) ? 3 : raw));
+            this._nameEntryChars = new Array(len).fill(0);
+            this._nameEntryCursor = 0;
+        }
+
+        nameEntryMoveCursor({ DIRECTION }) {
+            const len = this._nameEntryChars.length;
+            if (!len) return;
+            if (DIRECTION === "right") {
+                this._nameEntryCursor = (this._nameEntryCursor + 1) % len;
+            } else {
+                this._nameEntryCursor = (this._nameEntryCursor - 1 + len) % len;
+            }
+        }
+
+        nameEntryScrollLetter({ DIRECTION }) {
+            if (!this._nameEntryChars.length) return;
+            const i = this._nameEntryCursor;
+            if (DIRECTION === "up") {
+                this._nameEntryChars[i] = (this._nameEntryChars[i] + 1) % NAME_ENTRY_ALPHABET.length;
+            } else {
+                this._nameEntryChars[i] = (this._nameEntryChars[i] - 1 + NAME_ENTRY_ALPHABET.length) % NAME_ENTRY_ALPHABET.length;
+            }
+        }
+
+        nameEntryCursor() {
+            return this._nameEntryCursor + 1;
+        }
+
+        nameEntryLetterAt({ POS }) {
+            const i = Math.floor(Number(POS)) - 1;
+            if (i < 0 || i >= this._nameEntryChars.length) return "";
+            return NAME_ENTRY_ALPHABET[this._nameEntryChars[i]];
+        }
+
+        nameEntryCurrentName() {
+            return this._nameEntryChars
+                .map(i => NAME_ENTRY_ALPHABET[i])
+                .join("")
+                .trimEnd();
         }
 
         cloudAvailable() {
