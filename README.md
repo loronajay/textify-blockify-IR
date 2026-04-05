@@ -6,6 +6,19 @@ This repo receives regular updates to tighten up the system/fix bugs. Relevant d
 
 A deterministic IR transformation engine for Scratch/TurboWarp block-based programs. **This is the authoritative source for Textify IR and Blockify IR specifications.** Enables AI-assisted code mutation via a canonical text format called Textify Canon IR (also referred to as Blockify IR).
 
+## Why I built this
+
+I was building games in TurboWarp and wanted AI assistance to generate and mutate
+block logic. The problem: there was no way to communicate Scratch blocks as text.
+I couldn't paste a screenshot into a chat and get something renderable back.
+
+So I designed Textify Canon IR — a deterministic text representation of Scratch
+block programs — and built two extensions around it: one to serialize blocks to IR,
+one to parse and render IR back to visual blocks. The result is a real AI-assisted
+game development loop that I use for my own projects.
+
+This tool exists because I needed it.
+
 ## Live Demo
 
 [Play the Snake game](https://loronajay.github.io/textify-blockify-IR) — a Scratch game built using this pipeline with Google Gemini. Use WASD to move. **Known bug:** moving right then immediately turning down → left causes an instant death. Fix pending.
@@ -127,6 +140,20 @@ Before processing Textify Canon IR or Blockify IR:
 | `IR_GRAMMAR.md` | Formal grammar spec — for AI models |
 | `IR_FULL_REFERENCE.md` | Full human reference — mutation rules, failure modes, examples |
 | `PROJECT_STATUS.md` | Implementation status and known limits |
+
+## Part of the Jay Arcade ecosystem
+
+Textify/Blockify is one component of the [Jay Arcade](https://jayarcade.com) platform
+— a solo-built retro competitive arcade. The full system includes a game delivery
+frontend, an automated Python build pipeline, a leaderboard REST API, a WebSocket
+multiplayer server, and a custom mobile arcade controller.
+
+The `factory_extensions/` directory in this repo also houses the rest of the
+**TurboWarp Game Factory** — 10 additional modular extensions covering networking,
+physics, animation, UI, audio, and controls — all designed to be dragged into any
+TurboWarp project as reusable building blocks.
+
+→ [github.com/loronajay/loronajay](https://github.com/loronajay/loronajay) — full ecosystem overview
 
 ## Feedback & Bug Reports
 
