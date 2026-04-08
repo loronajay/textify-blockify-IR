@@ -1,7 +1,7 @@
 # Project Status — Textify/Blockify 2
 
-**Last updated:** 2026-04-07
-**Current phase:** Phase 5C — Self-Contained Prompt UI (implemented, pending Railway + manual verification)
+**Last updated:** 2026-04-08
+**Current phase:** Phase 5D — Targeted Mutation (planning)
 
 ---
 
@@ -15,7 +15,7 @@
 | **4** | Bridge Client (inside Blockify 2) | **Complete** |
 | **5** | Agent Protocol | **Complete** |
 | **5B** | MCP Server + Auto-Connect | **Complete** |
-| **5C** | Self-Contained Prompt UI | **Implemented — pending Railway + manual verification** |
+| **5C** | Self-Contained Prompt UI | **Complete** |
 | **5D** | Targeted Mutation + Multi-Sprite Targeting | Future |
 | **6** | TurboWarp Fork | Future |
 
@@ -308,37 +308,94 @@ Both proposals were authored by Claude Code as raw IR text and committed via `PO
 
 ### Goal
 
-Make TB2 usable by general TurboWarp users with no terminal, no bridge, no Node.js. A unified persistent floating panel inside Blockify 2 drives the full prompt → AI → propose → approve loop entirely within the extension.
+Make TB2 usable by general TurboWarp users with no terminal, no bridge, no Node.js. A unified persistent floating panel inside Blockify 2 drives the full prompt → AI → discuss → propose → approve loop entirely within the extension.
 
-### New functions in `blockify-turbowarp-2.js`
+### Railway hosting (`textify-and-blockify-2/hosted/`)
 
-| Function/Class | What it does |
+| File | What it does |
 |---|---|
-| `TB2Panel` | Persistent floating panel with 5 views: Collapsed, Idle, Settings, Thinking, Proposal, Error. Replaces the ephemeral `showProposalPanel`. |
-| `buildTB2Prompt({ fullStateIR, spriteName, targetIR, userPrompt })` | Builds the AI system prompt with inlined IR grammar + project state. |
-| `parseTB2AgentResponse(raw)` | Parses `IR_ONLY` / `NO_CHANGE` / `ERROR:` / `PARSE_FAILURE` from model response. |
-| `callClaudeViaProxy(systemPrompt, userPrompt, apiKey, proxyUrl)` | POSTs to Railway proxy (required — Anthropic blocks browser CORS). |
-| `callOpenAI(systemPrompt, userPrompt, apiKey)` | POSTs directly to OpenAI (passes browser CORS). |
-| `BlockifyPhase1.runTB2AgentLoop(userPrompt)` | Full in-extension agent loop: get state → build prompt → call AI → parse → propose → retry once on validation failure → show error on second failure. |
-| `BlockifyPhase1.proposeIRDirect(irText)` | Synchronous propose path used by the agent loop (bypasses clipboard). |
+| `hosted/server.js` | Express server. `POST /proxy/claude` forwards requests to Anthropic with the user's API key passed as `x-tb2-api-key` header (never stored server-side). `GET /blockify-turbowarp-2.embedded.js` and `GET /textify-turbowarp-2.js` serve extension files with `Access-Control-Allow-Origin: *`. `GET /health` for Railway health check. |
+| `railway.toml` | Build command: `npm install && npm run build:blockify2`. Start command: `node textify-and-blockify-2/hosted/server.js`. Health check: `/health`. |
+| `scripts/build-blockify2-embedded.mjs` | Updated: reads `TB2_PROXY_URL` env var at build time and injects it as `const TB2_CLAUDE_PROXY_URL` into the bundle. Defaults to `http://localhost:7331/proxy/claude` for local dev. Also injects `IR_GRAMMAR.md` as `__IR_GRAMMAR_TEXT__`. |
 
-### Build script change
+**Deploy process:** Two-pass. First deploy → get Railway URL → set `TB2_PROXY_URL` env var → redeploy so the correct proxy URL is baked into the embedded JS.
 
-`scripts/build-blockify2-embedded.mjs` now reads `IR_GRAMMAR.md` at build time and injects it as `__IR_GRAMMAR_TEXT__` into the bundle. The system prompt is always self-contained — no network fetch needed.
+**Live URL:** `https://textify-blockify-production.up.railway.app`
+
+### `TB2Panel` class
+
+Persistent floating panel. Created once at extension load, never destroyed. State machine: Collapsed → Idle → Thinking → Proposal / Error. Settings accessible via gear icon.
+
+| Feature | Detail |
+|---|---|
+| **Position** | Anchored `top:24px right:24px`, expands downward |
+| **Draggable** | Drag by header bar. Cursor changes to grabbing. Position saved to `localStorage` and restored on next load. |
+| **Resizable** | Custom triangle resize handle in bottom-right corner. Minimum size: 360×280px. Size saved to `localStorage`. |
+| **Session log** | Persistent collapsible footer showing timestamped play-by-play of every agent loop step. Selectable text. "Copy All" button. Never cleared until extension is unloaded. |
+| **API key storage** | Provider (`claude`/`openai`) and key stored in `localStorage` under `tb2_provider` / `tb2_api_key`. Never sent anywhere except as an HTTP header to the chosen provider (or Railway proxy for Claude). |
+| **First run** | Opens in Settings view if no key is set; Idle view otherwise. |
+
+### Chat flow
+
+Phase 5C extended the original single-shot IR loop into a full conversation model.
+
+| Response type | Agent usage | Panel behaviour |
+|---|---|---|
+| `DISCUSS\n<text>` | Questions, clarifications, design discussion | Text bubble added to chat history. User can reply freely. |
+| `PROPOSE_READY\n<summary>\nIR_ONLY\n<ir>` | Agent signals intent before generating blocks | Green card with summary + "Build it ▶" / "Keep discussing" buttons. IR already in hand — "Build it" runs local validation immediately, no extra API call. |
+| `IR_ONLY\n<ir>` | Short unambiguous requests | Goes straight to block preview (existing proposal flow). |
+| `NO_CHANGE` | Already implemented | Chat bubble: "No changes needed". |
+| `ERROR:<reason>` | Impossible/contradictory request | Error view with copyable message. |
+
+Conversation history (`_conversationHistory[]`) is sent with every API call so the agent retains full session context. History is in-memory only — resets when the extension is unloaded.
+
+### Context window management
+
+| Threshold | Behaviour |
+|---|---|
+| > 40k chars in history | Yellow banner: "Context getting long" + Compact button |
+| > 80k chars | Red banner: "Context window nearly full" + Compact button |
+
+**Compact flow:** Makes one API call asking the agent to summarise what has been built. Clears `_conversationHistory` and `_chatMessages`. Pins the summary as a note in the chat display. Seeds the new history with the summary so the agent retains continuity.
+
+### Usage limit error handling
+
+Provider errors are now parsed into specific user-facing messages:
+
+| Status | Message |
+|---|---|
+| 401 | "Invalid API key. Go to Settings and re-enter your [provider] key." |
+| 429 (rate limit) | "Rate limit hit. Wait a moment and try again." |
+| 429 (quota) | "Usage limit reached. Your [provider] API quota may be exhausted — check your account dashboard." |
+| 529 / 503 | "[Provider] is currently overloaded. Try again in a moment." |
+| 400 (context too long) | "Prompt too long. Use the Compact button to clear the context window and continue." |
+
+### New / updated functions in `blockify-turbowarp-2.js`
+
+| Function | What it does |
+|---|---|
+| `TB2Panel` | Persistent panel. Chat history, drag/resize, session log, context warning. |
+| `TB2Panel.appendChat(role, text, opts)` | Adds a message to chat display. PROPOSE_READY entries render as action cards. |
+| `TB2Panel.discardProposeReady()` | Removes the last propose_ready card from chat when user chooses "Keep discussing". |
+| `TB2Panel.log(text)` | Appends a timestamped entry to the session log footer. |
+| `buildTB2Prompt({ fullStateIR, spriteName, targetIR })` | Builds system prompt with grammar + IR state + response format rules. `userPrompt` removed — now in messages array. |
+| `parseTB2AgentResponse(raw)` | Parses `IR_ONLY` / `NO_CHANGE` / `ERROR:` / `DISCUSS` / `PROPOSE_READY` / `PARSE_FAILURE`. |
+| `callClaudeViaProxy(systemPrompt, messages, apiKey, proxyUrl)` | Updated: accepts full messages array for multi-turn conversation. |
+| `callOpenAI(systemPrompt, messages, apiKey)` | Updated: accepts full messages array. |
+| `parseProviderError(status, bodyText, providerName)` | Maps HTTP error codes to user-facing messages. |
+| `BlockifyPhase1.runTB2AgentLoop(userPrompt)` | Full conversation-aware agent loop. Handles all response types, maintains history. |
+| `BlockifyPhase1._pushHistory(role, content)` | Pushes to history and updates panel's `_contextCharCount`. |
+| `BlockifyPhase1._popHistory()` | Rolls back last history entry (used on network failure). |
+| `BlockifyPhase1.compactHistory()` | Summarises session via API, clears history, pins summary, seeds fresh context. |
+| `BlockifyPhase1.proposeIRDirect(irText)` | Synchronous propose used by agent loop and "Build it" button. |
 
 ### Key design decisions confirmed during implementation
 
-- Anthropic API **blocks browser CORS** — Claude calls must go through a Railway proxy. OpenAI passes CORS directly.
-- `localStorage` is accessible from TurboWarp unsandboxed extensions (R3 verified).
-- Panel DOM injection works in both browser and Desktop TurboWarp (R4 verified).
-- `showProposalPanel` fully retired — both `proposeIR`, `proposeIRFromBridge`, and the new agent loop all route through `TB2Panel.showProposal()`.
-- Target sprite name displayed in Proposal view (foundation for Phase 5D metadata).
-
-### Remaining to complete Phase 5C
-
-1. **Railway proxy** — Express server that forwards Claude API calls with `x-tb2-api-key` header. Required for browser users.
-2. **Railway hosting** — serve `blockify-turbowarp-2.embedded.js` and `textify-turbowarp-2.js` at stable public URLs with CORS headers.
-3. **Manual verification** — load extension from hosted URL, enter API key, send a prompt, approve proposal, confirm blocks appear.
+- Anthropic API **blocks browser CORS** — Claude calls must go through the Railway proxy. OpenAI passes browser CORS directly.
+- `localStorage` is accessible from TurboWarp unsandboxed extensions.
+- Panel DOM injection works in TurboWarp Desktop (extensions must be loaded from local files via the Files tab — untrusted network URLs are always sandboxed even in Desktop).
+- `showProposalPanel` fully retired — all proposal paths route through `TB2Panel.showProposal()`.
+- Conversation history is sent to the API on every call; the system prompt always carries the current IR state (freshly read via Textify 2 hooks).
 
 ### Tests
 
@@ -349,6 +406,16 @@ Make TB2 usable by general TurboWarp users with no terminal, no bridge, no Node.
 | `blockify2-prompt-ui.test.js` | 15 passing |
 
 36 new tests. All pre-existing tests continue to pass.
+
+### Verified end-to-end (2026-04-08)
+
+- Railway health check passes ✓
+- Extension files served at stable URLs with correct CORS headers ✓
+- Claude proxy forwarding confirmed working ✓
+- Panel loads from local file in TurboWarp Desktop (Files tab) ✓
+- Chat flow: DISCUSS → PROPOSE_READY → Build it → block preview → Approve → blocks in workspace ✓
+- Session log captures full play-by-play ✓
+- Context warning appears after long sessions ✓
 
 ---
 
@@ -380,11 +447,13 @@ Planning doc: `planning-documents/PLAN_PHASE5D_TARGETED_MUTATION.md` (to be writ
 
 ```
 textify-and-blockify-2/
-  CLAUDE.md                              ← AI working rules for this folder
+  CLAUDE.md                              ← AI working rules for this folder (gitignored)
   PROJECT_STATUS.md                      ← this file
   blockify-turbowarp-2.js                ← TB2 Blockify source
-  blockify-turbowarp-2.embedded.js       ← built artifact (scratch-blocks bundled in)
+  blockify-turbowarp-2.embedded.js       ← built artifact (scratch-blocks + IR grammar bundled in)
   textify-turbowarp-2.js                 ← TB2 Textify source
+  hosted/
+    server.js                            ← Railway Express server (Claude proxy + static file serving)
   planning-documents/
     PLAN_PHASE1_VM_WRITER.md             ← Phase 1 plan (complete)
     PLAN_PHASE2_PREVIEW_UI.md            ← Phase 2 plan (complete)
@@ -392,6 +461,7 @@ textify-and-blockify-2/
     PLAN_PHASE4_USERSCRIPT.md            ← Phase 4 plan (complete)
     PLAN_PHASE5_AGENT_PROTOCOL.md        ← Phase 5 plan (complete)
     PLAN_PHASE5B_MCP_SERVER.md           ← Phase 5B plan (complete)
+    PLAN_PHASE5C_PROMPT_UI.md            ← Phase 5C plan (complete)
   __tests__/
     blockify2-vm-writer.test.js          ← Phase 1 tests (16 passing)
     blockify2-preview-ui.test.js         ← Phase 2 tests (15 passing)
@@ -413,6 +483,11 @@ textify-and-blockify-2/
       prompt-builder.test.js             ← Phase 5 prompt builder tests (13 passing)
       response-parser.test.js            ← Phase 5 response parser tests (13 passing)
   PHASE4_MANUAL_TESTS.md                 ← manual verification checklist for Phase 4 ✓
+
+scripts/
+  build-blockify2-embedded.mjs           ← TB2 build script (injects IR grammar + proxy URL)
+
+railway.toml                             ← Railway build + start config
 
 .claude/
   settings.json                          ← Phase 5B MCP config (project-local, checked in)

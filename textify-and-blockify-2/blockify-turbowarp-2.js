@@ -2957,6 +2957,8 @@
       this.preCommitWorkspaceXml = '';
       this._panel = new TB2Panel();
       this._panel._onSend = (prompt) => this.runTB2AgentLoop(prompt);
+      this._panel._onCompact = () => this.compactHistory();
+      this._conversationHistory = [];
     }
 
     setBufferText(text) {
@@ -3274,6 +3276,9 @@
     async runTB2AgentLoop(userPrompt) {
       if (!userPrompt || !userPrompt.trim()) return;
 
+      this._panel.log(`User: "${userPrompt}"`);
+      this._panel.appendChat('user', userPrompt);
+
       const apiKey = typeof localStorage !== 'undefined' ? localStorage.getItem('tb2_api_key') : null;
       const provider = typeof localStorage !== 'undefined' ? (localStorage.getItem('tb2_provider') || 'claude') : 'claude';
       if (!apiKey) { this._panel.showSettings(); return; }
@@ -3282,6 +3287,7 @@
       const editingTarget = Scratch.vm && Scratch.vm.editingTarget;
       const spriteName = editingTarget && editingTarget.sprite ? editingTarget.sprite.name : 'Sprite1';
       const targetIR = (textifyHooks && editingTarget) ? (textifyHooks.exportAllStacksText(editingTarget) || '') : '';
+      this._panel.log(`Sprite: ${spriteName} | Provider: ${provider}`);
 
       let fullStateIR = targetIR;
       if (textifyHooks && Scratch.vm) {
@@ -3294,39 +3300,171 @@
       }
 
       const proxyUrl = (typeof TB2_CLAUDE_PROXY_URL !== 'undefined') ? TB2_CLAUDE_PROXY_URL : 'http://localhost:7331/proxy/claude'; // eslint-disable-line no-undef
+      const label = provider === 'openai' ? 'OpenAI (gpt-4o)' : 'Claude (claude-opus-4-6)';
+      const systemPrompt = buildTB2Prompt({ fullStateIR, spriteName, targetIR });
 
-      const callProvider = async (sysPrompt, userMsg) => {
-        if (provider === 'openai') return callOpenAI(sysPrompt, userMsg, apiKey);
-        return callClaudeViaProxy(sysPrompt, userMsg, apiKey, proxyUrl);
+      const callProvider = async (msgs) => {
+        if (provider === 'openai') return callOpenAI(systemPrompt, msgs, apiKey);
+        return callClaudeViaProxy(systemPrompt, msgs, apiKey, proxyUrl);
       };
 
-      const attemptProposal = async (extraContext) => {
-        const sysPrompt = buildTB2Prompt({ fullStateIR, spriteName, targetIR, userPrompt });
-        const userMsg = extraContext ? `${userPrompt}\n\nPrevious attempt failed with: ${extraContext}` : userPrompt;
-        this._panel.showThinking(extraContext ? 'Retrying…' : 'Working…');
-        const raw = await callProvider(sysPrompt, userMsg);
-        return parseTB2AgentResponse(raw);
-      };
+      // Add user message to conversation history and build messages snapshot
+      this._pushHistory('user', userPrompt);
+      const messages = this._conversationHistory.slice();
+
+      this._panel.log(`Calling ${label}…`);
+      this._panel.showThinking('Working…');
 
       try {
-        let result = await attemptProposal(null);
+        const raw = await callProvider(messages);
+        this._panel.log(`Response received (${raw.length} chars)`);
+        const result = parseTB2AgentResponse(raw);
+        this._panel.log(`Parsed: ${result.type}${result.reason ? ` — ${result.reason}` : ''}`);
 
-        if (result.type === 'NO_CHANGE') { this._panel.showIdle('No changes needed'); return; }
-        if (result.type === 'ERROR') { this._panel.showError(result.reason); return; }
-        if (result.type === 'PARSE_FAILURE') { this._panel.showError(`Unexpected response:\n${result.raw}`); return; }
+        // Record agent response in conversation history
+        this._pushHistory('assistant', raw);
 
-        // IR_ONLY — try to propose
+        if (result.type === 'DISCUSS') {
+          this._panel.log(`Agent: "${result.text.slice(0, 80)}${result.text.length > 80 ? '…' : ''}"`);
+          this._panel.appendChat('assistant', result.text, { type: 'discuss' });
+          this._panel.showIdle();
+          return;
+        }
+
+        if (result.type === 'NO_CHANGE') {
+          this._panel.appendChat('assistant', 'No changes needed — the requested behaviour is already present.', { type: 'discuss' });
+          this._panel.showIdle();
+          return;
+        }
+
+        if (result.type === 'ERROR') {
+          this._panel.showError(result.reason);
+          return;
+        }
+
+        if (result.type === 'PARSE_FAILURE') {
+          this._panel.showError(`Unexpected response:\n${result.raw}`);
+          return;
+        }
+
+        if (result.type === 'PROPOSE_READY') {
+          this._panel.log(`Propose ready: "${result.summary.slice(0, 80)}${result.summary.length > 80 ? '…' : ''}"`);
+          const ir = result.ir;
+          const owner = this;
+          this._panel.appendChat('assistant', result.summary, {
+            type: 'propose_ready',
+            ir,
+            spriteName,
+            onBuild: () => {
+              this._panel.log('User clicked Build it — validating…');
+              const proposeResult = owner.proposeIRDirect(ir);
+              if (proposeResult.ok) {
+                this._panel.log(`Validation passed — proposing to ${spriteName}`);
+              } else {
+                this._panel.log(`Validation failed: ${proposeResult.error}`);
+                this._panel.showError(`Validation failed:\n${proposeResult.error}`);
+              }
+            },
+            onDiscard: () => {
+              this._panel.log('User chose to keep discussing');
+              this._panel.discardProposeReady();
+            }
+          });
+          this._panel.showIdle();
+          return;
+        }
+
+        // IR_ONLY — validate and propose, retry once on failure
         const proposeResult = this.proposeIRDirect(result.ir);
-        if (proposeResult.ok) return; // panel already in proposal state
+        if (proposeResult.ok) {
+          this._panel.log(`Validation passed — proposing to ${spriteName}`);
+          return;
+        }
 
-        // Validation failure — retry once
-        result = await attemptProposal(proposeResult.error);
+        this._panel.log(`Validation failed: ${proposeResult.error}`);
+        const retryMessages = [
+          ...messages,
+          { role: 'assistant', content: raw },
+          { role: 'user', content: `Previous attempt failed validation: ${proposeResult.error}\nPlease fix and try again.` }
+        ];
+        this._panel.log(`Retry — calling ${label}…`);
+        this._panel.showThinking('Retrying…');
+        const retryRaw = await callProvider(retryMessages);
+        this._panel.log(`Retry response (${retryRaw.length} chars)`);
+        const retryResult = parseTB2AgentResponse(retryRaw);
+        this._panel.log(`Retry parsed: ${retryResult.type}`);
 
-        if (result.type !== 'IR_ONLY') { this._panel.showError(`Retry failed:\n${result.raw || result.reason || ''}`); return; }
-        const retryResult = this.proposeIRDirect(result.ir);
-        if (!retryResult.ok) this._panel.showError(`Validation failed after retry:\n${retryResult.error}`);
+        if (retryResult.type !== 'IR_ONLY') {
+          this._panel.showError(`Retry failed:\n${retryRaw.slice(0, 300)}`);
+          return;
+        }
+        const retryProposeResult = this.proposeIRDirect(retryResult.ir);
+        if (retryProposeResult.ok) {
+          this._panel.log(`Retry validation passed — proposing to ${spriteName}`);
+          this._pushHistory('user', `Previous attempt failed validation: ${proposeResult.error}\nPlease fix and try again.`);
+          this._pushHistory('assistant', retryRaw);
+        } else {
+          this._panel.log(`Retry validation failed: ${retryProposeResult.error}`);
+          this._panel.showError(`Validation failed after retry:\n${retryProposeResult.error}`);
+        }
       } catch (e) {
+        this._panel.log(`Error: ${e.message}`);
         this._panel.showError(e.message);
+        // Roll back the user message since the call failed
+        this._popHistory();
+      }
+    }
+
+    _pushHistory(role, content) {
+      this._conversationHistory.push({ role, content });
+      this._panel._contextCharCount = this._conversationHistory.reduce((s, m) => s + m.content.length, 0);
+    }
+
+    _popHistory() {
+      this._conversationHistory.pop();
+      this._panel._contextCharCount = this._conversationHistory.reduce((s, m) => s + m.content.length, 0);
+    }
+
+    async compactHistory() {
+      const apiKey = typeof localStorage !== 'undefined' ? localStorage.getItem('tb2_api_key') : null;
+      const provider = typeof localStorage !== 'undefined' ? (localStorage.getItem('tb2_provider') || 'claude') : 'claude';
+      if (!apiKey || !this._conversationHistory.length) return;
+
+      this._panel.showThinking('Summarizing session…');
+      this._panel.log('Compacting context window…');
+
+      const proxyUrl = (typeof TB2_CLAUDE_PROXY_URL !== 'undefined') ? TB2_CLAUDE_PROXY_URL : 'http://localhost:7331/proxy/claude'; // eslint-disable-line no-undef
+      const compactMessages = [
+        ...this._conversationHistory,
+        { role: 'user', content: 'Please write a 2-3 sentence summary of what has been built and what key decisions were made in this conversation. Be specific about scripts, variables, and behaviours that now exist.' }
+      ];
+
+      try {
+        let summary;
+        if (provider === 'openai') {
+          summary = await callOpenAI('You are summarizing a Scratch game development session.', compactMessages, apiKey);
+        } else {
+          summary = await callClaudeViaProxy('You are summarizing a Scratch game development session.', compactMessages, apiKey, proxyUrl);
+        }
+
+        this._panel.log(`Compacted. Summary: "${summary.slice(0, 80)}${summary.length > 80 ? '…' : ''}"`);
+
+        // Clear history and chat display
+        this._conversationHistory = [];
+        this._panel._chatMessages = [];
+        this._panel._contextCharCount = 0;
+
+        // Pin summary note in chat
+        this._panel.appendChat('assistant', `Session compacted.\n\n${summary}`, { type: 'discuss' });
+
+        // Inject summary as seed context for future calls
+        this._pushHistory('user', `Session context (prior history compacted): ${summary}`);
+        this._pushHistory('assistant', 'Understood. Ready to continue.');
+
+        this._panel.showIdle('Session compacted ✓');
+      } catch (e) {
+        this._panel.log(`Compact failed: ${e.message}`);
+        this._panel.showError(`Could not compact: ${e.message}`);
       }
     }
 
@@ -3639,6 +3777,13 @@
       this._owner = null;
       this._el = null;
       this._bodyEl = null;
+      this._log = [];
+      this._logExpanded = true;
+      this._logBodyEl = null;
+      this._logToggleEl = null;
+      this._chatMessages = [];
+      this._contextCharCount = 0;
+      this._onCompact = null;
       this._init();
     }
 
@@ -3651,22 +3796,26 @@
       const old = document.getElementById('tb2-prompt-panel');
       if (old) old.remove();
 
+      const MIN_W = 360;
+      const MIN_H = 280;
+
       const panel = document.createElement('div');
       panel.id = 'tb2-prompt-panel';
       panel.style.cssText = [
-        'position:fixed', 'bottom:24px', 'right:24px',
+        'position:fixed', 'top:24px', 'right:24px',
         'width:360px', 'background:#181818',
         'border:1px solid #555', 'border-radius:12px',
         'box-shadow:0 8px 24px rgba(0,0,0,.5)',
         'z-index:999998', 'display:flex', 'flex-direction:column',
-        'overflow:hidden', 'font-family:sans-serif'
+        'overflow:hidden', 'font-family:sans-serif',
+        `min-width:${MIN_W}px`, `min-height:${MIN_H}px`
       ].join(';');
 
       const header = document.createElement('div');
       header.style.cssText = [
         'display:flex', 'align-items:center', 'justify-content:space-between',
         'padding:8px 12px', 'background:#222', 'border-bottom:1px solid #444',
-        'cursor:pointer', 'user-select:none'
+        'cursor:grab', 'user-select:none', 'flex-shrink:0'
       ].join(';');
       const headerTitle = document.createElement('span');
       headerTitle.textContent = 'TB2 AI';
@@ -3676,17 +3825,133 @@
       minimizeBtn.style.cssText = 'background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;padding:0 4px';
       minimizeBtn.onclick = (e) => { e.stopPropagation(); this.collapsed ? this.expand() : this.collapse(); };
       header.append(headerTitle, minimizeBtn);
-      header.onclick = () => { if (this.collapsed) this.expand(); };
 
       const body = document.createElement('div');
       body.id = 'tb2-prompt-panel-body';
-      body.style.cssText = 'padding:12px;display:flex;flex-direction:column;gap:8px';
+      body.style.cssText = 'padding:12px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto';
 
-      panel.append(header, body);
+      const logSection = document.createElement('div');
+      logSection.style.cssText = 'border-top:1px solid #333;display:flex;flex-direction:column;flex-shrink:0';
+
+      const logHeader = document.createElement('div');
+      logHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:6px 12px;cursor:pointer;user-select:none';
+
+      const logToggle = document.createElement('span');
+      logToggle.textContent = '▼ Session Log';
+      logToggle.style.cssText = 'color:#777;font-size:11px';
+
+      const copyAllBtn = document.createElement('button');
+      copyAllBtn.textContent = 'Copy All';
+      copyAllBtn.style.cssText = 'padding:2px 8px;border-radius:4px;border:1px solid #444;background:#2d2d2d;color:#999;font-size:10px;cursor:pointer';
+      copyAllBtn.onclick = (e) => { e.stopPropagation(); this._copyLog(); };
+
+      logHeader.append(logToggle, copyAllBtn);
+      logHeader.onclick = () => {
+        this._logExpanded = !this._logExpanded;
+        logBody.style.display = this._logExpanded ? 'block' : 'none';
+        logToggle.textContent = (this._logExpanded ? '▼' : '▶') + ' Session Log';
+      };
+
+      const logBody = document.createElement('div');
+      logBody.style.cssText = [
+        'padding:4px 12px 10px', 'max-height:160px', 'overflow-y:auto',
+        'font-family:monospace', 'font-size:10px', 'line-height:1.6',
+        'color:#888', 'user-select:text', 'white-space:pre-wrap', 'word-break:break-all'
+      ].join(';');
+
+      // Resize handle — triangle in bottom-right corner
+      const resizeHandle = document.createElement('div');
+      resizeHandle.style.cssText = 'position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:se-resize;z-index:1;line-height:0';
+      resizeHandle.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16"><path d="M16 0 L16 16 L0 16 Z" fill="#444"/></svg>';
+
+      logSection.append(logHeader, logBody);
+      panel.append(header, body, logSection, resizeHandle);
       document.body.appendChild(panel);
 
       this._el = panel;
       this._bodyEl = body;
+      this._logBodyEl = logBody;
+      this._logToggleEl = logToggle;
+
+      // Restore saved position and size
+      if (typeof localStorage !== 'undefined') {
+        const sx = localStorage.getItem('tb2_panel_x');
+        const sy = localStorage.getItem('tb2_panel_y');
+        const sw = localStorage.getItem('tb2_panel_w');
+        const sh = localStorage.getItem('tb2_panel_h');
+        if (sx !== null && sy !== null) {
+          panel.style.right = '';
+          panel.style.left = sx + 'px';
+          panel.style.top = sy + 'px';
+        }
+        if (sw !== null) panel.style.width = sw + 'px';
+        if (sh !== null) panel.style.height = sh + 'px';
+      }
+
+      // Drag logic
+      let dragState = null;
+
+      header.addEventListener('mousedown', (e) => {
+        if (e.target === minimizeBtn) return;
+        e.preventDefault();
+        const rect = panel.getBoundingClientRect();
+        panel.style.right = '';
+        panel.style.left = rect.left + 'px';
+        panel.style.top = rect.top + 'px';
+        dragState = { startX: e.clientX, startY: e.clientY, startLeft: rect.left, startTop: rect.top, moved: false };
+        header.style.cursor = 'grabbing';
+      });
+
+      // Resize logic
+      let resizeState = null;
+
+      resizeHandle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = panel.getBoundingClientRect();
+        resizeState = { startX: e.clientX, startY: e.clientY, startW: rect.width, startH: rect.height };
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (dragState) {
+          const dx = e.clientX - dragState.startX;
+          const dy = e.clientY - dragState.startY;
+          if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragState.moved = true;
+          panel.style.left = (dragState.startLeft + dx) + 'px';
+          panel.style.top = (dragState.startTop + dy) + 'px';
+        }
+        if (resizeState) {
+          const dw = e.clientX - resizeState.startX;
+          const dh = e.clientY - resizeState.startY;
+          panel.style.width = Math.max(MIN_W, resizeState.startW + dw) + 'px';
+          panel.style.height = Math.max(MIN_H, resizeState.startH + dh) + 'px';
+        }
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (dragState) {
+          header.style.cursor = 'grab';
+          if (dragState.moved && typeof localStorage !== 'undefined') {
+            const rect = panel.getBoundingClientRect();
+            localStorage.setItem('tb2_panel_x', Math.round(rect.left));
+            localStorage.setItem('tb2_panel_y', Math.round(rect.top));
+          }
+          dragState = null;
+        }
+        if (resizeState) {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('tb2_panel_w', Math.round(parseFloat(panel.style.width)));
+            localStorage.setItem('tb2_panel_h', Math.round(parseFloat(panel.style.height)));
+          }
+          resizeState = null;
+        }
+      });
+
+      // Only expand on click if not a drag
+      header.onclick = () => {
+        if (dragState && dragState.moved) return;
+        if (this.collapsed) this.expand();
+      };
 
       if (hasKey) {
         this.showIdle();
@@ -3697,7 +3962,7 @@
 
     _clearBody() {
       if (!this._bodyEl) return;
-      this._bodyEl.style.cssText = 'padding:12px;display:flex;flex-direction:column;gap:8px';
+      this._bodyEl.style.cssText = 'padding:12px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto';
       while (this._bodyEl.children.length) this._bodyEl.children[0].remove();
     }
 
@@ -3711,23 +3976,137 @@
       if (this._bodyEl) this._bodyEl.style.display = 'flex';
     }
 
+    log(text) {
+      const now = new Date();
+      const ts = [
+        String(now.getHours()).padStart(2, '0'),
+        String(now.getMinutes()).padStart(2, '0'),
+        String(now.getSeconds()).padStart(2, '0')
+      ].join(':');
+      const entry = `[${ts}] ${text}`;
+      this._log.push(entry);
+      if (this._logBodyEl) {
+        const line = document.createElement('div');
+        line.textContent = entry;
+        this._logBodyEl.appendChild(line);
+        this._logBodyEl.scrollTop = this._logBodyEl.scrollHeight;
+      }
+    }
+
+    _copyLog() {
+      const text = this._log.join('\n');
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(text).catch(() => this._copyLogFallback(text));
+      } else {
+        this._copyLogFallback(text);
+      }
+    }
+
+    _copyLogFallback(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+
     showIdle(message) {
       this.state = 'idle';
       this.statusMessage = message || '';
       this._clearBody();
       if (!this._bodyEl) return;
 
+      // Chat history
+      if (this._chatMessages.length > 0) {
+        const chatDiv = document.createElement('div');
+        chatDiv.style.cssText = 'flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-bottom:4px';
+
+        for (const msg of this._chatMessages) {
+          if (msg.type === 'propose_ready') {
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#1a2a1a;border:1px solid #3a5a3a;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0';
+            const label = document.createElement('div');
+            label.textContent = 'Ready to build:';
+            label.style.cssText = 'color:#7cb87c;font-size:11px;font-weight:bold';
+            const summary = document.createElement('div');
+            summary.textContent = msg.text;
+            summary.style.cssText = 'color:#ccc;font-size:12px;line-height:1.5';
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end';
+            const discardBtn = document.createElement('button');
+            discardBtn.textContent = 'Keep discussing';
+            discardBtn.style.cssText = 'padding:4px 10px;border-radius:6px;border:1px solid #555;background:#2d2d2d;color:#aaa;font-size:11px;cursor:pointer';
+            discardBtn.onclick = () => { if (msg.onDiscard) msg.onDiscard(); };
+            const buildBtn = document.createElement('button');
+            buildBtn.textContent = 'Build it ▶';
+            buildBtn.style.cssText = 'padding:4px 12px;border-radius:6px;border:none;background:#27ae60;color:#fff;font:bold 11px sans-serif;cursor:pointer';
+            buildBtn.onclick = () => { if (msg.onBuild) msg.onBuild(); };
+            btnRow.append(discardBtn, buildBtn);
+            card.append(label, summary, btnRow);
+            chatDiv.appendChild(card);
+          } else {
+            const isUser = msg.role === 'user';
+            const bubble = document.createElement('div');
+            bubble.style.cssText = [
+              'max-width:85%', 'padding:7px 10px', 'border-radius:10px',
+              'font-size:12px', 'line-height:1.5', 'word-break:break-word', 'flex-shrink:0',
+              isUser
+                ? 'align-self:flex-end;background:#3b3270;color:#e0d9ff'
+                : 'align-self:flex-start;background:#2a2a2a;color:#ccc'
+            ].join(';');
+            bubble.textContent = msg.text;
+            chatDiv.appendChild(bubble);
+          }
+        }
+
+        this._bodyEl.appendChild(chatDiv);
+        requestAnimationFrame(() => { chatDiv.scrollTop = chatDiv.scrollHeight; });
+      }
+
+      // Status message
       if (this.statusMessage) {
         const status = document.createElement('div');
         status.textContent = this.statusMessage;
-        status.style.cssText = 'color:#aaa;font-size:12px;text-align:center';
+        status.style.cssText = 'color:#aaa;font-size:12px;text-align:center;flex-shrink:0';
         this._bodyEl.appendChild(status);
       }
+
+      // Context warning
+      const WARN_AT = 40000;
+      const CRITICAL_AT = 80000;
+      if (this._contextCharCount > WARN_AT) {
+        const isCritical = this._contextCharCount > CRITICAL_AT;
+        const warning = document.createElement('div');
+        warning.style.cssText = [
+          'display:flex', 'align-items:center', 'justify-content:space-between',
+          'padding:6px 10px', 'border-radius:6px', 'flex-shrink:0',
+          'font-size:11px',
+          isCritical
+            ? 'background:#3a1a1a;border:1px solid #7a3a3a;color:#e07070'
+            : 'background:#2a2a1a;border:1px solid #5a5a2a;color:#c8c870'
+        ].join(';');
+        const warningText = document.createElement('span');
+        warningText.textContent = isCritical
+          ? '⚠ Context window nearly full'
+          : '⚠ Context getting long';
+        const compactBtn = document.createElement('button');
+        compactBtn.textContent = 'Compact';
+        compactBtn.style.cssText = 'padding:2px 8px;border-radius:4px;border:1px solid currentColor;background:transparent;color:inherit;font-size:10px;cursor:pointer';
+        compactBtn.onclick = () => { if (this._onCompact) this._onCompact(); };
+        warning.append(warningText, compactBtn);
+        this._bodyEl.appendChild(warning);
+      }
+
+      // Input area — always at bottom
+      const inputArea = document.createElement('div');
+      inputArea.style.cssText = 'display:flex;flex-direction:column;gap:8px;flex-shrink:0';
 
       const textarea = document.createElement('textarea');
       textarea.placeholder = 'Describe what you want to build…';
       textarea.style.cssText = [
-        'width:100%', 'min-height:72px', 'background:#111',
+        'width:100%', 'min-height:60px', 'background:#111',
         'color:#fff', 'border:1px solid #555', 'border-radius:6px',
         'padding:8px', 'font-size:13px', 'resize:vertical', 'box-sizing:border-box'
       ].join(';');
@@ -3750,7 +4129,23 @@
       };
 
       row.append(gearBtn, sendBtn);
-      this._bodyEl.append(textarea, row);
+      inputArea.append(textarea, row);
+      this._bodyEl.appendChild(inputArea);
+    }
+
+    appendChat(role, text, opts = {}) {
+      this._chatMessages.push({ role, text, ...opts });
+      if (this.state === 'idle') this.showIdle();
+    }
+
+    discardProposeReady() {
+      for (let i = this._chatMessages.length - 1; i >= 0; i--) {
+        if (this._chatMessages[i].type === 'propose_ready') {
+          this._chatMessages.splice(i, 1);
+          break;
+        }
+      }
+      if (this.state === 'idle') this.showIdle();
     }
 
     showSettings() {
@@ -3858,11 +4253,13 @@
     }
 
     approve() {
+      this.log('User approved — committing');
       if (this._owner) this._owner.approveIR();
       this.showIdle('Done ✓');
     }
 
     reject() {
+      this.log('User rejected');
       if (this._owner) this._owner.rejectIR();
       this.showIdle();
     }
@@ -3903,7 +4300,7 @@
 
   const TB2_GRAMMAR = (typeof __IR_GRAMMAR_TEXT__ !== 'undefined') ? __IR_GRAMMAR_TEXT__ : ''; // eslint-disable-line no-undef
 
-  function buildTB2Prompt({ fullStateIR, spriteName, targetIR, userPrompt }) {
+  function buildTB2Prompt({ fullStateIR, spriteName, targetIR }) {
     return `${TB2_GRAMMAR}
 
 ## Current Project State
@@ -3921,36 +4318,43 @@ Its current IR is:
 ${targetIR}
 </target_ir>
 
-## Task
+## Response Format
 
-${userPrompt}
+You are a Scratch/TurboWarp block coding assistant. You can discuss ideas with the user and propose block changes when ready.
 
-## Rules
+You must respond with exactly one of these formats:
 
-You must return exactly one of these three responses:
+**DISCUSS** — for questions, clarifications, or conversation before building
+First line: "DISCUSS"
+Remaining lines: your message to the user
 
-1. IR_ONLY
-   The literal text "IR_ONLY" on the first line, followed by the complete IR for the
-   modified sprite. No explanation. No commentary. The IR must be the full replacement
-   for the target sprite, not a fragment.
+**PROPOSE_READY** — when you have a clear plan and are ready to generate blocks
+First line: "PROPOSE_READY"
+Next lines: plain-English summary of exactly what you will build
+Then the literal text "IR_ONLY" on its own line
+Then: the complete IR for the target sprite
 
-2. NO_CHANGE
-   The literal text "NO_CHANGE" if the requested change is already present, not
-   applicable, or cannot be safely expressed in IR.
+**IR_ONLY** — for short, unambiguous requests needing no discussion
+First line: "IR_ONLY"
+Remaining lines: the complete IR for the target sprite
 
-3. ERROR:<reason>
-   The literal text "ERROR:" followed by a one-line reason if the task is
-   ambiguous, contradictory, or requires capabilities not present in the IR grammar.
+**NO_CHANGE** — if the requested change is already present
+Exactly: "NO_CHANGE"
 
-Do not mix formats. Do not add commentary before or after your chosen response.
-Do not return partial IR. Do not return multiple proposals.
+**ERROR:** — if the request is impossible or contradictory
+Exactly: "ERROR: <one-line reason>"
 
-Prefer the smallest valid mutation that satisfies the request. Do not rewrite
-blocks that are unrelated to the task. Do not remove existing behavior unless
-explicitly asked to.
+When to use each:
+- Use DISCUSS when the request needs clarification, involves design decisions, or you want to explore options before building
+- Use PROPOSE_READY when you have discussed enough and are confident in a plan — always summarise what you will build before generating IR so the user can confirm
+- Use IR_ONLY only for clear, direct, unambiguous requests (e.g. "add a move right block")
+- Never generate IR without either the IR_ONLY or PROPOSE_READY prefix
 
-You may read the full project state for context. You must propose changes to
-exactly one sprite: ${spriteName}.`;
+When generating IR (IR_ONLY or inside PROPOSE_READY):
+- The IR must be the complete replacement for the target sprite, not a fragment
+- Prefer the smallest valid mutation that satisfies the request
+- Do not remove existing behaviour unless explicitly asked
+- You may read the full project state for context but must propose changes to exactly one sprite: ${spriteName}`;
   }
 
   function parseTB2AgentResponse(raw) {
@@ -3966,6 +4370,20 @@ exactly one sprite: ${spriteName}.`;
       if (!ir || !ir.trim()) return { type: 'PARSE_FAILURE', raw };
       return { type: 'IR_ONLY', ir };
     }
+    if (trimmed.startsWith('DISCUSS\n')) {
+      const text = trimmed.slice('DISCUSS\n'.length).trim();
+      return { type: 'DISCUSS', text: text || '(no message)' };
+    }
+    if (trimmed.startsWith('PROPOSE_READY\n')) {
+      const rest = trimmed.slice('PROPOSE_READY\n'.length);
+      const irMarker = '\nIR_ONLY\n';
+      const irIdx = rest.indexOf(irMarker);
+      if (irIdx === -1) return { type: 'PARSE_FAILURE', raw };
+      const summary = rest.slice(0, irIdx).trim();
+      const ir = rest.slice(irIdx + irMarker.length).trim();
+      if (!ir) return { type: 'PARSE_FAILURE', raw };
+      return { type: 'PROPOSE_READY', summary, ir };
+    }
     return { type: 'PARSE_FAILURE', raw };
   }
 
@@ -3973,7 +4391,22 @@ exactly one sprite: ${spriteName}.`;
   // Provider clients
   // ---------------------------------------------------------------------------
 
-  async function callClaudeViaProxy(systemPrompt, userPrompt, apiKey, proxyUrl) {
+  function parseProviderError(status, bodyText, providerName) {
+    if (status === 401) return `Invalid API key. Go to Settings and re-enter your ${providerName} key.`;
+    if (status === 429) {
+      const isRateLimit = bodyText.includes('rate_limit') || bodyText.includes('rate limit');
+      return isRateLimit
+        ? `Rate limit hit. Wait a moment and try again.`
+        : `Usage limit reached. Your ${providerName} API quota may be exhausted — check your account dashboard.`;
+    }
+    if (status === 529 || status === 503) return `${providerName} is currently overloaded. Try again in a moment.`;
+    if (status === 400 && (bodyText.includes('too long') || bodyText.includes('context_length'))) {
+      return `Prompt too long. Use the Compact button to clear the context window and continue.`;
+    }
+    return `${providerName} error ${status}: ${bodyText.slice(0, 150)}`;
+  }
+
+  async function callClaudeViaProxy(systemPrompt, messages, apiKey, proxyUrl) {
     const res = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
@@ -3984,18 +4417,18 @@ exactly one sprite: ${spriteName}.`;
         model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
+        messages
       })
     });
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Claude proxy error ${res.status}: ${body.slice(0, 200)}`);
+      throw new Error(parseProviderError(res.status, body, 'Claude'));
     }
     const data = await res.json();
     return data.content[0].text;
   }
 
-  async function callOpenAI(systemPrompt, userPrompt, apiKey) {
+  async function callOpenAI(systemPrompt, messages, apiKey) {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -4005,15 +4438,12 @@ exactly one sprite: ${spriteName}.`;
       body: JSON.stringify({
         model: 'gpt-4o',
         max_tokens: 4096,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ]
+        messages: [{ role: 'system', content: systemPrompt }, ...messages]
       })
     });
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`OpenAI error ${res.status}: ${body.slice(0, 200)}`);
+      throw new Error(parseProviderError(res.status, body, 'OpenAI'));
     }
     const data = await res.json();
     return data.choices[0].message.content;

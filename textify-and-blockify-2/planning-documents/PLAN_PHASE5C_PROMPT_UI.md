@@ -409,55 +409,33 @@ hosted/
 - [x] IR grammar inlined at build time — system prompt is complete without network fetch
 - [x] All new tests passing (36 new tests); existing TB2 tests still passing
 - [x] `PROJECT_STATUS.md` and `CLAUDE.md` updated
-- [ ] Railway proxy deployed — `POST /proxy/claude` forwarding to Anthropic with `x-tb2-api-key`
-- [ ] Extension files hosted on Railway at stable URLs with `Access-Control-Allow-Origin: *`
-- [ ] `TB2_CLAUDE_PROXY_URL` injected into build at deploy time, embedded file rebuilt
-- [ ] Send → Thinking → Proposal flow verified end-to-end with real API key (Claude + OpenAI)
-- [ ] End-to-end manual verification: load from hosted URL → enter key → prompt → approve → blocks appear
+- [x] Railway proxy deployed — `POST /proxy/claude` forwarding to Anthropic with `x-tb2-api-key`
+- [x] Extension files hosted on Railway at stable URLs with `Access-Control-Allow-Origin: *`
+- [x] `TB2_CLAUDE_PROXY_URL` injected into build at deploy time, embedded file rebuilt
+- [x] Send → Thinking → Proposal flow verified end-to-end with real API key (Claude)
+- [x] End-to-end manual verification: load from local file → enter key → prompt → approve → blocks appear
+
+**Note:** Extensions must be loaded from local files via TurboWarp Desktop's Files tab. Untrusted network URLs are sandboxed even in Desktop — the extension requires unsandboxed mode for VM access.
 
 ---
 
-## Railway Resume Point
+## Phase 5C Extended Features (implemented 2026-04-08)
 
-**Next session starts here.** Everything above is implemented and tested. The only remaining work is Railway.
+The following were added beyond the original plan scope during the Railway verification session:
 
-### What Railway needs
+### What was built ✓
 
-**1. Express server with two responsibilities:**
+**Express server** (`textify-and-blockify-2/hosted/server.js`) — complete.
 
-```
-POST /proxy/claude
-  Headers in:  x-tb2-api-key: {user's Anthropic key}
-               Content-Type: application/json
-  Body in:     { model, max_tokens, system, messages }  ← forwarded as-is to Anthropic
-  Forwards to: https://api.anthropic.com/v1/messages
-               with x-api-key: {x-tb2-api-key value}
-               and anthropic-version: 2023-06-01
-  Returns:     Anthropic's response JSON unchanged
+**Build script** (`scripts/build-blockify2-embedded.mjs`) — `TB2_PROXY_URL` env var injected as `const TB2_CLAUDE_PROXY_URL`. Set on Railway dashboard, baked in on redeploy.
 
-GET /blockify-turbowarp-2.embedded.js
-GET /textify-turbowarp-2.js
-  Headers:     Access-Control-Allow-Origin: *
-  Returns:     file contents
-```
+**Live Railway URL:** `https://textify-blockify-production.up.railway.app`
 
-The key is never stored server-side — it arrives in the request header and goes straight to Anthropic.
+**Chat flow** — extended beyond original spec. See `PROJECT_STATUS.md` Phase 5C section.
 
-**2. After Railway URL is known:**
+**Panel improvements** — drag/resize, session log, context warning — all added and verified.
 
-In `scripts/build-blockify2-embedded.mjs`, add alongside the grammar injection:
-```js
-const proxyUrl = process.env.TB2_PROXY_URL || 'http://localhost:7331/proxy/claude';
-// inject as: const TB2_CLAUDE_PROXY_URL = "https://...railway.app/proxy/claude";
-```
-
-Then rebuild: `npm run build:blockify2`
-
-**3. Manual verification checklist:**
-- Load `blockify-turbowarp-2.embedded.js` from Railway URL in TurboWarp
-- Panel appears in corner, opens to Settings
-- Enter Anthropic key, select Claude, Save
-- Type a prompt, hit Send
-- Proposal panel appears with block preview
-- Click Approve — blocks appear in workspace
-- Repeat with OpenAI key + OpenAI provider
+**Session flow confirmed:**
+- Load extensions from local file in TurboWarp Desktop (Files tab — untrusted URLs are always sandboxed)
+- Panel opens, API key entered, conversation starts
+- DISCUSS → PROPOSE_READY → Build it → block preview → Approve → blocks in workspace ✓
