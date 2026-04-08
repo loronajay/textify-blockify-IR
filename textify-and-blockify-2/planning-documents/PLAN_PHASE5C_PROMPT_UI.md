@@ -148,6 +148,11 @@ it becomes a method on the panel instance that transitions to Proposal view. Bot
 in-extension agent and the bridge path call this method — the bridge path continues
 to work unchanged from the user's perspective.
 
+**Target sprite display:** The Proposal view must show the target sprite name (always
+`vm.editingTarget.getName()` in this phase). This is trivial to include and is the
+foundation for Phase 5D's proposal precision / UX metadata goal — 5D will extend this
+field to support explicit multi-sprite targeting without changing the panel structure.
+
 ---
 
 ## In-Extension Agent Loop
@@ -393,17 +398,66 @@ hosted/
 
 ## Definition of Done
 
-- [ ] R1–R5 risks verified in TurboWarp before implementation starts
-- [ ] Panel appears on extension load; collapses/expands correctly
-- [ ] First-run opens Settings; subsequent runs open Idle
-- [ ] API key and provider saved to localStorage and persisted across reloads
-- [ ] Send → Thinking → Proposal flow works end-to-end with a real API key
-- [ ] NO_CHANGE returns user to Idle with status message
-- [ ] Validation failure retries once silently; second failure shows copyable error
-- [ ] Bridge proposal still drives the panel (bridge path unbroken)
-- [ ] `showProposalPanel` replaced by panel state transition (no regression)
-- [ ] Claude and OpenAI both work end-to-end with real keys
-- [ ] IR grammar inlined at build time — system prompt is complete without network fetch
-- [ ] Extension files hosted on Railway at stable URLs with correct CORS headers
-- [ ] All new tests passing; existing 100 TB2 tests still passing
-- [ ] `PROJECT_STATUS.md` and `CLAUDE.md` updated
+- [x] R1–R5 risks verified in TurboWarp (R1 Anthropic CORS = fail → proxy needed, R2 OpenAI = pass, R3 localStorage = pass, R4 panel DOM = pass, R5 grammar inlining = pass via readFile)
+- [x] Panel appears on extension load; collapses/expands correctly
+- [x] First-run opens Settings; subsequent runs open Idle
+- [x] API key and provider saved to localStorage and persisted across reloads
+- [x] NO_CHANGE returns user to Idle with status message
+- [x] Validation failure retries once silently; second failure shows copyable error
+- [x] Bridge proposal still drives the panel (bridge path unbroken)
+- [x] `showProposalPanel` replaced by panel state transition (no regression)
+- [x] IR grammar inlined at build time — system prompt is complete without network fetch
+- [x] All new tests passing (36 new tests); existing TB2 tests still passing
+- [x] `PROJECT_STATUS.md` and `CLAUDE.md` updated
+- [ ] Railway proxy deployed — `POST /proxy/claude` forwarding to Anthropic with `x-tb2-api-key`
+- [ ] Extension files hosted on Railway at stable URLs with `Access-Control-Allow-Origin: *`
+- [ ] `TB2_CLAUDE_PROXY_URL` injected into build at deploy time, embedded file rebuilt
+- [ ] Send → Thinking → Proposal flow verified end-to-end with real API key (Claude + OpenAI)
+- [ ] End-to-end manual verification: load from hosted URL → enter key → prompt → approve → blocks appear
+
+---
+
+## Railway Resume Point
+
+**Next session starts here.** Everything above is implemented and tested. The only remaining work is Railway.
+
+### What Railway needs
+
+**1. Express server with two responsibilities:**
+
+```
+POST /proxy/claude
+  Headers in:  x-tb2-api-key: {user's Anthropic key}
+               Content-Type: application/json
+  Body in:     { model, max_tokens, system, messages }  ← forwarded as-is to Anthropic
+  Forwards to: https://api.anthropic.com/v1/messages
+               with x-api-key: {x-tb2-api-key value}
+               and anthropic-version: 2023-06-01
+  Returns:     Anthropic's response JSON unchanged
+
+GET /blockify-turbowarp-2.embedded.js
+GET /textify-turbowarp-2.js
+  Headers:     Access-Control-Allow-Origin: *
+  Returns:     file contents
+```
+
+The key is never stored server-side — it arrives in the request header and goes straight to Anthropic.
+
+**2. After Railway URL is known:**
+
+In `scripts/build-blockify2-embedded.mjs`, add alongside the grammar injection:
+```js
+const proxyUrl = process.env.TB2_PROXY_URL || 'http://localhost:7331/proxy/claude';
+// inject as: const TB2_CLAUDE_PROXY_URL = "https://...railway.app/proxy/claude";
+```
+
+Then rebuild: `npm run build:blockify2`
+
+**3. Manual verification checklist:**
+- Load `blockify-turbowarp-2.embedded.js` from Railway URL in TurboWarp
+- Panel appears in corner, opens to Settings
+- Enter Anthropic key, select Claude, Save
+- Type a prompt, hit Send
+- Proposal panel appears with block preview
+- Click Approve — blocks appear in workspace
+- Repeat with OpenAI key + OpenAI provider

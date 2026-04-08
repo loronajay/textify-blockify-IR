@@ -1,7 +1,7 @@
 # Project Status — Textify/Blockify 2
 
 **Last updated:** 2026-04-07
-**Current phase:** Phase 5C — Self-Contained Prompt UI (planning)
+**Current phase:** Phase 5C — Self-Contained Prompt UI (implemented, pending Railway + manual verification)
 
 ---
 
@@ -15,7 +15,8 @@
 | **4** | Bridge Client (inside Blockify 2) | **Complete** |
 | **5** | Agent Protocol | **Complete** |
 | **5B** | MCP Server + Auto-Connect | **Complete** |
-| **5C** | Self-Contained Prompt UI | **Planning** |
+| **5C** | Self-Contained Prompt UI | **Implemented — pending Railway + manual verification** |
+| **5D** | Targeted Mutation + Multi-Sprite Targeting | Future |
 | **6** | TurboWarp Fork | Future |
 
 ---
@@ -303,6 +304,70 @@ Both proposals were authored by Claude Code as raw IR text and committed via `PO
 
 ---
 
+## Phase 5C — What Was Built
+
+### Goal
+
+Make TB2 usable by general TurboWarp users with no terminal, no bridge, no Node.js. A unified persistent floating panel inside Blockify 2 drives the full prompt → AI → propose → approve loop entirely within the extension.
+
+### New functions in `blockify-turbowarp-2.js`
+
+| Function/Class | What it does |
+|---|---|
+| `TB2Panel` | Persistent floating panel with 5 views: Collapsed, Idle, Settings, Thinking, Proposal, Error. Replaces the ephemeral `showProposalPanel`. |
+| `buildTB2Prompt({ fullStateIR, spriteName, targetIR, userPrompt })` | Builds the AI system prompt with inlined IR grammar + project state. |
+| `parseTB2AgentResponse(raw)` | Parses `IR_ONLY` / `NO_CHANGE` / `ERROR:` / `PARSE_FAILURE` from model response. |
+| `callClaudeViaProxy(systemPrompt, userPrompt, apiKey, proxyUrl)` | POSTs to Railway proxy (required — Anthropic blocks browser CORS). |
+| `callOpenAI(systemPrompt, userPrompt, apiKey)` | POSTs directly to OpenAI (passes browser CORS). |
+| `BlockifyPhase1.runTB2AgentLoop(userPrompt)` | Full in-extension agent loop: get state → build prompt → call AI → parse → propose → retry once on validation failure → show error on second failure. |
+| `BlockifyPhase1.proposeIRDirect(irText)` | Synchronous propose path used by the agent loop (bypasses clipboard). |
+
+### Build script change
+
+`scripts/build-blockify2-embedded.mjs` now reads `IR_GRAMMAR.md` at build time and injects it as `__IR_GRAMMAR_TEXT__` into the bundle. The system prompt is always self-contained — no network fetch needed.
+
+### Key design decisions confirmed during implementation
+
+- Anthropic API **blocks browser CORS** — Claude calls must go through a Railway proxy. OpenAI passes CORS directly.
+- `localStorage` is accessible from TurboWarp unsandboxed extensions (R3 verified).
+- Panel DOM injection works in both browser and Desktop TurboWarp (R4 verified).
+- `showProposalPanel` fully retired — both `proposeIR`, `proposeIRFromBridge`, and the new agent loop all route through `TB2Panel.showProposal()`.
+- Target sprite name displayed in Proposal view (foundation for Phase 5D metadata).
+
+### Remaining to complete Phase 5C
+
+1. **Railway proxy** — Express server that forwards Claude API calls with `x-tb2-api-key` header. Required for browser users.
+2. **Railway hosting** — serve `blockify-turbowarp-2.embedded.js` and `textify-turbowarp-2.js` at stable public URLs with CORS headers.
+3. **Manual verification** — load extension from hosted URL, enter API key, send a prompt, approve proposal, confirm blocks appear.
+
+### Tests
+
+| File | Tests |
+|---|---|
+| `blockify2-provider-clients.test.js` | 6 passing |
+| `blockify2-agent-logic.test.js` | 15 passing |
+| `blockify2-prompt-ui.test.js` | 15 passing |
+
+36 new tests. All pre-existing tests continue to pass.
+
+---
+
+## Phase 5D — Scope (Future)
+
+Defined after Phase 5B verification. Addresses the write-side ceiling that remains after 5C:
+
+- **Targeted mutation operations** — `replace_script`, `insert_after`, `append`, `delete` instead of always full-sprite rewrites. Payload remains IR-based.
+- **Multi-sprite write targeting** — explicit sprite naming in proposals, not just `editingTarget`.
+- **Proposal precision metadata** — panel shows target sprite, script, and mutation type.
+- **Stable targeting model** — deterministic handles for identifying which script/stack to mutate.
+- **Variable/list cleanup on undo** — variables declared during a commit are currently not removed on undo; this phase fixes that.
+
+Full-rewrite path stays as fallback. Approve/reject safety model unchanged. Depends on Phase 5C complete.
+
+Planning doc: `planning-documents/PLAN_PHASE5D_TARGETED_MUTATION.md` (to be written after 5C verified)
+
+---
+
 ## Current Limitations
 
 - Single sprite only — commits to `vm.editingTarget`, no multi-sprite targeting
@@ -328,9 +393,12 @@ textify-and-blockify-2/
     PLAN_PHASE5_AGENT_PROTOCOL.md        ← Phase 5 plan (complete)
     PLAN_PHASE5B_MCP_SERVER.md           ← Phase 5B plan (complete)
   __tests__/
-    blockify2-vm-writer.test.js          ← Phase 1 tests (15 passing)
+    blockify2-vm-writer.test.js          ← Phase 1 tests (16 passing)
     blockify2-preview-ui.test.js         ← Phase 2 tests (15 passing)
     blockify2-bridge-client.test.js      ← Phase 4 tests (10 passing)
+    blockify2-provider-clients.test.js   ← Phase 5C provider client tests (6 passing)
+    blockify2-agent-logic.test.js        ← Phase 5C prompt/response logic tests (15 passing)
+    blockify2-prompt-ui.test.js          ← Phase 5C panel state machine tests (15 passing)
   bridge/
     bridge.js                            ← Phase 3 bridge server (complete)
     bridge.test.js                       ← Phase 3 tests (13 passing)

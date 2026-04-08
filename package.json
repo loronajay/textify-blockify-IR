@@ -12,11 +12,13 @@
   "homepage": "https://github.com/loronajay/textify-blockify-IR",
   "scripts": {
     "test": "jest",
-    "build:blockify": "node scripts/build-blockify-embedded.mjs"
+    "build:blockify": "node scripts/build-blockify-embedded.mjs",
+    "build:blockify2": "node scripts/build-blockify2-embedded.mjs"
   },
   "jest": {
     "testMatch": [
-      "**/__tests__/**/*.test.js"
+      "**/__tests__/**/*.test.js",
+      "**/bridge/**/*.test.js"
     ]
   },
   "keywords": [
@@ -41,7 +43,11 @@
     "jest": "^30.3.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.85.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "blockly": "^12.5.1",
-    "scratch-blocks": "^2.1.4"
+    "express": "^4.22.1",
+    "scratch-blocks": "^2.1.4",
+    "ws": "^8.20.0"
   }
 }

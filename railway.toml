@@ -1,0 +1,6 @@
+[build]
+buildCommand = "npm install && npm run build:blockify2"
+
+[deploy]
+startCommand = "node textify-and-blockify-2/hosted/server.js"
+healthcheckPath = "/health"
