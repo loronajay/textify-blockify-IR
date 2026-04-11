@@ -130,6 +130,26 @@ Before processing Textify Canon IR or Blockify IR:
 2. Review critical validation rules in `MODEL_PRIMER.md`
 3. Consult `IR_FULL_REFERENCE.md` for mutation rules and examples
 
+## Textify/Blockify 2 — In Development
+
+**TB2 is the successor to this system.** The clipboard-based workflow above works, but it has friction: export IR, paste into a chat, copy the result, paste into Blockify, repeat. TB2 eliminates that loop entirely.
+
+Instead of a clipboard cycle, TB2 embeds a persistent chat panel directly inside TurboWarp. You describe what you want, the agent reads the live project state, proposes block changes, and you click Approve. The blocks appear in the workspace — variables created, procedures registered, everything wired. No clipboard. No terminal. No IR editing.
+
+[Watch the TB2 demo on YouTube](https://youtu.be/wFajuLUGkUg?si=LdrgYkiMoB1wCPis) — prompt-to-blocks live inside TurboWarp Desktop.
+
+**Current status:** Phase 5C is complete and end-to-end verified. The full loop — chat → AI discussion → block proposal → approve → live blocks — works inside TurboWarp Desktop with a Claude or OpenAI key. The agent retains conversation history across turns, can ask clarifying questions before proposing, and supports session compaction for long projects.
+
+What's been proven in live sessions:
+- Full WASD movement script proposed and committed from a single plain-English prompt
+- Variable refactor (`movespeed`) proposed as a follow-up, variable auto-created in the VM
+- Multi-turn discussion before a proposal — agent asked clarifying questions, user replied, then blocks were built
+- Context warnings and compaction for long sessions
+
+**TB2 source lives in `textify-and-blockify-2/`.** TB1 (this system) remains frozen and production-stable. Both can be loaded simultaneously with no namespace collision.
+
+---
+
 ## Files
 
 | File | Purpose |
