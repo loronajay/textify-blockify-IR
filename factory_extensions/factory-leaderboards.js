@@ -191,6 +191,15 @@
                             NAME: { type: Scratch.ArgumentType.STRING, defaultValue: "High Scores" }
                         }
                     },
+                    {
+                        opcode: "formattedRow",
+                        blockType: Scratch.BlockType.REPORTER,
+                        text: "leaderboard row [RANK] from [NAME]",
+                        arguments: {
+                            RANK: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 },
+                            NAME: { type: Scratch.ArgumentType.STRING, defaultValue: "High Scores" }
+                        }
+                    },
 
                     // Utility
                     {
@@ -405,6 +414,18 @@
             if (!board) return 0;
             const entry = board.entries[RANK - 1];
             return entry ? entry.value : 0;
+        }
+
+        formattedRow({ RANK, NAME }) {
+            const board = getBoard(NAME);
+            if (!board) return "";
+            const rank = Math.floor(Number(RANK));
+            const entry = board.entries[rank - 1];
+            if (!entry) return "";
+            const r = String(rank).padStart(2);
+            const n = String(entry.name).padEnd(7);
+            const s = String(entry.value).padStart(5);
+            return `${r}  ${n}  ${s}`;
         }
 
         exists({ NAME }) {

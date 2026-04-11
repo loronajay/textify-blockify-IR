@@ -55,18 +55,17 @@ All leaderboard blocks are implemented in `factory-leaderboards.js`.
 
 ## Pipeline Integration Status
 
-**Server deployed. Extension done. Pipeline wiring complete. Waiting on apple-catcher TurboWarp rebuild.**
+**End-to-end live as of 2026-04-11. Apple-catcher fully wired and tested.**
 
 Completed:
-- `.env` created with all 9 game keys
+- `.env` created with all 9 game keys; keys deployed as Railway env vars
 - `game.json` leaderboard block added to all games (enabled for apple-catcher, bird-duty, blade-and-sphere, space-molestors, speed-demon)
 - `patch_all_games.py` extended to inject `leaderboard` config into `JAY_GAME_CONFIG` + `JayLeaderboard` helper inline
-- Dry run confirmed correct output
+- apple-catcher rebuilt in TurboWarp with leaderboard blocks wired up, deployed, end-to-end tested
 
 Remaining:
-1. Rebuild apple-catcher in TurboWarp with leaderboard blocks wired up → re-export
-2. Full build + deploy via `build_arcade.py --commit --push`
-3. End-to-end test: submit a score, fetch top scores, verify display in-game
+- Wire up leaderboard blocks in: bird-duty, blade-and-sphere, space-molestors, speed-demon
+- Rebuild + re-export each, then full build + deploy
 
 Full status tracked in `games-directory-page/leaderboard-server-progress.md`.
 
@@ -76,14 +75,12 @@ Full status tracked in `games-directory-page/leaderboard-server-progress.md`.
 
 | Game | `leaderboard.enabled` | Notes |
 |---|---|---|
-| `apple-catcher` | — | not configured |
-| `art-of-war` | — | not configured |
-| `bird-duty` | — | not configured |
-| `blade-and-sphere` | — | not configured |
-| `dodgeballs` | — | not configured |
-| `paddle-battle` | — | not configured |
-| `space-molestors` | — | not configured |
-| `speed-demon` | — | not configured |
-| `sumorai` | — | not configured |
-
-Update this table as games are configured.
+| `apple-catcher` | true | Live — end-to-end tested 2026-04-11 |
+| `art-of-war` | false | Not planned yet |
+| `bird-duty` | true | Pipeline patched; needs TurboWarp rebuild |
+| `blade-and-sphere` | true | Pipeline patched; needs TurboWarp rebuild |
+| `dodgeballs` | false | Not planned yet |
+| `paddle-battle` | false | Not planned yet |
+| `space-molestors` | true | Pipeline patched; needs TurboWarp rebuild |
+| `speed-demon` | true | Pipeline patched; needs TurboWarp rebuild |
+| `sumorai` | false | Not planned yet |
