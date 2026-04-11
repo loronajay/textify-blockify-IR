@@ -1,6 +1,6 @@
 # Project Status — Textify/Blockify 2
 
-**Last updated:** 2026-04-08
+**Last updated:** 2026-04-11
 **Current phase:** Phase 5D — Targeted Mutation (planning)
 
 ---
@@ -16,7 +16,7 @@
 | **5** | Agent Protocol | **Complete** |
 | **5B** | MCP Server + Auto-Connect | **Complete** |
 | **5C** | Self-Contained Prompt UI | **Complete** |
-| **5D** | Targeted Mutation + Multi-Sprite Targeting | Future |
+| **5D** | Targeted Mutation + Multi-Sprite Targeting | **Planning** |
 | **6** | TurboWarp Fork | Future |
 
 ---
@@ -41,7 +41,7 @@
 
 ### Tests
 
-15 tests in `textify-and-blockify-2/__tests__/blockify2-vm-writer.test.js` — all passing.
+16 tests in `textify-and-blockify-2/__tests__/blockify2-vm-writer.test.js` — all passing.
 
 Covers: remintBlockIds (ID replacement, uniqueness), declareVariablesInVM (scalars, lists, broadcasts, idempotency), injectRootsIntoWorkspace (XML injection), commitIRToWorkspace (success, error, double-commit, factory opcode passthrough, variable + inject together, procedure).
 
@@ -159,7 +159,7 @@ Request/response correlation via message `id` field. Timeout configurable (defau
 
 ### Tests
 
-10 tests in `blockify2-bridge-client.test.js` — all passing (53 total across all TB2 suites).
+11 tests in `blockify2-bridge-client.test.js` — all passing (54 total across all TB2 suites).
 
 ### Confirmed runtime facts (Phase 4)
 
@@ -402,10 +402,10 @@ Provider errors are now parsed into specific user-facing messages:
 | File | Tests |
 |---|---|
 | `blockify2-provider-clients.test.js` | 6 passing |
-| `blockify2-agent-logic.test.js` | 15 passing |
+| `blockify2-agent-logic.test.js` | 14 passing |
 | `blockify2-prompt-ui.test.js` | 15 passing |
 
-36 new tests. All pre-existing tests continue to pass.
+35 new tests. All pre-existing tests continue to pass.
 
 ### Verified end-to-end (2026-04-08)
 
@@ -462,12 +462,14 @@ textify-and-blockify-2/
     PLAN_PHASE5_AGENT_PROTOCOL.md        ← Phase 5 plan (complete)
     PLAN_PHASE5B_MCP_SERVER.md           ← Phase 5B plan (complete)
     PLAN_PHASE5C_PROMPT_UI.md            ← Phase 5C plan (complete)
+    PLAN_PHASE5D_TARGETED_MUTATION.md    ← Phase 5D plan (planning)
+    PHASE4_MANUAL_TESTS.md               ← manual verification checklist for Phase 4 ✓
   __tests__/
     blockify2-vm-writer.test.js          ← Phase 1 tests (16 passing)
     blockify2-preview-ui.test.js         ← Phase 2 tests (15 passing)
-    blockify2-bridge-client.test.js      ← Phase 4 tests (10 passing)
+    blockify2-bridge-client.test.js      ← Phase 4 tests (11 passing)
     blockify2-provider-clients.test.js   ← Phase 5C provider client tests (6 passing)
-    blockify2-agent-logic.test.js        ← Phase 5C prompt/response logic tests (15 passing)
+    blockify2-agent-logic.test.js        ← Phase 5C prompt/response logic tests (14 passing)
     blockify2-prompt-ui.test.js          ← Phase 5C panel state machine tests (15 passing)
   bridge/
     bridge.js                            ← Phase 3 bridge server (complete)
@@ -482,7 +484,6 @@ textify-and-blockify-2/
       runner.test.js                     ← Phase 5 integration tests (10 passing)
       prompt-builder.test.js             ← Phase 5 prompt builder tests (13 passing)
       response-parser.test.js            ← Phase 5 response parser tests (13 passing)
-  PHASE4_MANUAL_TESTS.md                 ← manual verification checklist for Phase 4 ✓
 
 scripts/
   build-blockify2-embedded.mjs           ← TB2 build script (injects IR grammar + proxy URL)
